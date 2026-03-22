@@ -630,6 +630,20 @@ input:focus, select:focus { border-color: var(--blue); }
       </div>
 
 
+      <!-- 時間別風向き -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="card-title" style="margin:0">時間別風向き・風速</div>
+          <button onclick="loadHourlyWind()" id="hourly-wind-btn"
+            style="font-size:11px;padding:3px 10px;border-radius:var(--radius-sm);border:0.5px solid var(--green);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:inherit">
+            取得
+          </button>
+        </div>
+        <div id="hourly-wind-table" style="font-size:11px;color:var(--text2)">
+          「取得」ボタンを押すと1時間ごとの風向き・風速を表示します
+        </div>
+      </div>
+
       <div class="card-title">釣座アドバイス</div>
       <div class="fish-seat-tabs" id="fish-seat-tabs"></div>
 
@@ -1412,6 +1426,78 @@ async function fetchWind(p, targetDate){
   }
 }
 
+
+/* ── 時間別風向き・風速 ── */
+async function loadHourlyWind(){
+  const el=document.getElementById('hourly-wind-table');
+  const btn=document.getElementById('hourly-wind-btn');
+  if(!el)return;
+  el.textContent='取得中...';
+  if(btn)btn.disabled=true;
+
+  const dt=tideDate||new Date();
+  const dateStr=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  const p=curPt;
+
+  try{
+    const res=await Promise.race([
+      fetch(`/api/hourly-wind?lat=${p.lat}&lon=${p.lon}&date=${dateStr}`),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('タイムアウト')),8000))
+    ]);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const d=await res.json();
+    if(d.error)throw new Error(d.error);
+
+    /* 風速 → 矢印本数（1〜5）と色 */
+    function windArrows(spd){
+      const n=spd<3?1:spd<6?2:spd<10?3:spd<15?4:5;
+      const col=spd<3?'#4a9eda':spd<6?'#1a9e6e':spd<10?'#ba7517':spd<15?'#e03055':'#a32d2d';
+      return {arrows:'›'.repeat(n), col, n};
+    }
+
+    /* 方位 → 矢印文字 */
+    const DIR_ARROW={'北':'↓','北北東':'↙','北東':'↙','東北東':'←','東':'←',
+      '東南東':'↖','南東':'↖','南南東':'↑','南':'↑','南南西':'↗','南西':'↗',
+      '西南西':'→','西':'→','西北西':'↘','北西':'↘','北北西':'↓'};
+
+    /* 今日なら現在時刻をハイライト */
+    const now=new Date();
+    const isToday=dt.toDateString()===now.toDateString();
+    const curH=now.getHours();
+
+    /* 表をHTMLで構築 */
+    let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:3px">';
+    d.hourly.forEach(h=>{
+      const hr=parseInt(h.time);
+      const{arrows,col,n}=windArrows(h.speed);
+      const isCur=isToday&&hr===curH;
+      const bg=isCur?'var(--blue-bg)':'var(--surface2)';
+      const bd=isCur?'0.5px solid var(--blue)':'0.5px solid var(--border)';
+      html+=`<div style="background:${bg};border:${bd};border-radius:4px;padding:4px 5px;text-align:center">
+        <div style="font-size:10px;color:var(--text2);font-weight:${isCur?700:400}">${h.time}</div>
+        <div style="font-size:14px;margin:1px 0">${DIR_ARROW[h.dir]||'→'}</div>
+        <div style="font-size:9px;color:var(--text2)">${h.dir}</div>
+        <div style="font-size:11px;font-weight:600;color:${col};letter-spacing:-1px">${arrows}</div>
+        <div style="font-size:9px;color:var(--text3)">${h.speed}m/s</div>
+      </div>`;
+    });
+    html+='</div>';
+    html+=`<div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text3)">
+      <span>風速の目安:</span>
+      <span style="color:#4a9eda">› 〜3m</span>
+      <span style="color:#1a9e6e">›› 3〜6m</span>
+      <span style="color:#ba7517">››› 6〜10m</span>
+      <span style="color:#e03055">›››› 10〜15m</span>
+      <span style="color:#a32d2d">››››› 15m〜</span>
+    </div>`;
+
+    el.innerHTML=html;
+  }catch(e){
+    el.textContent='取得失敗: '+e.message;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
 
 /* ── 釣座判定 ── */
 
