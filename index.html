@@ -1361,7 +1361,7 @@ async function fetchWind(p){
   } catch(e) {
     console.warn('fetchWind:', e.message);
     mainEl.textContent = prev !== '取得中...' ? prev : (windDeg !== null ? degToDir(windDeg) + '風 ' + windDeg + '°' : '― 未選択');
-    subEl.textContent = curPt.name+'港の風向き取得失敗 — 手動で選択するか server.py を起動してください';
+    subEl.textContent = curPt.name+'港: 風向き自動取得失敗 (' + e.message + ') — 手動で選択してください';
   }
 }
 
