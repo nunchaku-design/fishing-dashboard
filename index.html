@@ -565,7 +565,7 @@ input:focus, select:focus { border-color: var(--blue); }
     <!-- 左：潮位グラフ -->
     <div class="card">
       <div class="card-title" id="tide-graph-title">本日の潮位グラフ</div>
-      <svg id="tsvg" width="100%" viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+      <svg id="tsvg" width="100%" viewBox="0 0 600 224" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
       <table class="tide-table" id="ttbl"></table>
       <!-- chowari.jpリンク -->
       <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
@@ -1121,133 +1121,166 @@ function extr(data){const hi=[],lo=[];for(let i=1;i<data.length-1;i++){if(data[i
 function fH(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`}
 
 /* ── 潮位グラフ（ドット形式・chowari.jp風）── */
-function drawTide(data,nH){
-  const sv=document.getElementById('tsvg');
-  sv.innerHTML='';
-  const W=520,H=240,PL=44,PR=14,PT=44,PB=32;
-  const cw=W-PL-PR, ch=H-PT-PB;
-  const YMIN=-40,YMAX=200;
-  const sx=h=>PL+h/24*cw;
-  const sy=c=>PT+ch*(1-(c-YMIN)/(YMAX-YMIN));
+function drawTide(data, nH){
+  const sv = document.getElementById('tsvg');
+  sv.innerHTML = '';
+
+  /* レイアウト: グラフエリア + 下部情報エリア */
+  const W=600, GRAPH_H=180, INFO_H=44;
+  const H = GRAPH_H + INFO_H;
+  const PL=44, PR=12, PT=12, PB=4;
+  const cw = W-PL-PR, ch = GRAPH_H-PT-PB;
+  const YMIN=-40, YMAX=200;
+  const sx = h => PL + h/24*cw;
+  const sy = c => PT + ch*(1-(c-YMIN)/(YMAX-YMIN));
+
+  /* SVGサイズをJSから動的に設定 */
+  sv.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
   /* 背景（濃紺） */
-  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  bg.setAttribute('x',PL);bg.setAttribute('y',PT);
-  bg.setAttribute('width',cw);bg.setAttribute('height',ch);
-  bg.setAttribute('fill','#0a1a2e');sv.appendChild(bg);
+  const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('x',PL); bg.setAttribute('y',PT);
+  bg.setAttribute('width',cw); bg.setAttribute('height',ch);
+  bg.setAttribute('fill','#0a1a2e'); sv.appendChild(bg);
 
   /* 水平グリッド & 縦軸ラベル */
   [-40,0,50,100,150,200].forEach(v=>{
-    const y=sy(v);
-    const gl=document.createElementNS('http://www.w3.org/2000/svg','line');
-    gl.setAttribute('x1',PL);gl.setAttribute('y1',y);gl.setAttribute('x2',W-PR);gl.setAttribute('y2',y);
-    gl.setAttribute('stroke',v===0?'#2a4f8a':'#162d50');gl.setAttribute('stroke-width',v===0?'1':'0.5');
+    const y = sy(v);
+    const gl = document.createElementNS('http://www.w3.org/2000/svg','line');
+    gl.setAttribute('x1',PL); gl.setAttribute('y1',y);
+    gl.setAttribute('x2',W-PR); gl.setAttribute('y2',y);
+    gl.setAttribute('stroke', v===0?'#2a4f8a':'#162d50');
+    gl.setAttribute('stroke-width', v===0?'1':'0.5');
     sv.appendChild(gl);
-    const tl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tl.setAttribute('x',PL-4);tl.setAttribute('y',y+3.5);
-    tl.setAttribute('text-anchor','end');tl.setAttribute('font-size','9');
-    tl.setAttribute('fill','#5a80aa');tl.setAttribute('font-family','sans-serif');
-    tl.textContent=v+'cm';sv.appendChild(tl);
+    const tl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl.setAttribute('x',PL-4); tl.setAttribute('y',y+3.5);
+    tl.setAttribute('text-anchor','end'); tl.setAttribute('font-size','9');
+    tl.setAttribute('fill','#5a80aa'); tl.setAttribute('font-family','sans-serif');
+    tl.textContent = v+'cm'; sv.appendChild(tl);
   });
 
   /* 垂直グリッド & 時間軸 */
   [0,6,12,18,24].forEach(h=>{
-    const x=sx(h);
-    const vl=document.createElementNS('http://www.w3.org/2000/svg','line');
-    vl.setAttribute('x1',x);vl.setAttribute('y1',PT);vl.setAttribute('x2',x);vl.setAttribute('y2',PT+ch);
-    vl.setAttribute('stroke','#162d50');vl.setAttribute('stroke-width','0.5');sv.appendChild(vl);
-    const tl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tl.setAttribute('x',x);tl.setAttribute('y',H-8);
-    tl.setAttribute('text-anchor','middle');tl.setAttribute('font-size','9');
-    tl.setAttribute('fill','#5a80aa');tl.setAttribute('font-family','sans-serif');
-    tl.textContent=h+':00';sv.appendChild(tl);
+    const x = sx(h);
+    const vl = document.createElementNS('http://www.w3.org/2000/svg','line');
+    vl.setAttribute('x1',x); vl.setAttribute('y1',PT);
+    vl.setAttribute('x2',x); vl.setAttribute('y2',PT+ch);
+    vl.setAttribute('stroke','#162d50'); vl.setAttribute('stroke-width','0.5');
+    sv.appendChild(vl);
+    const tl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl.setAttribute('x',x); tl.setAttribute('y',PT+ch+12);
+    tl.setAttribute('text-anchor','middle'); tl.setAttribute('font-size','9');
+    tl.setAttribute('fill','#5a80aa'); tl.setAttribute('font-family','sans-serif');
+    tl.textContent = h+':00'; sv.appendChild(tl);
   });
 
   /* 満干潮を特定 */
-  const{hi,lo}=extr(data);
-  const hiTimes=new Set(hi.map(d=>d.h));
-  const loTimes=new Set(lo.map(d=>d.h));
+  const {hi,lo} = extr(data);
+  const hiTimes = new Set(hi.map(d=>d.h));
+  const loTimes = new Set(lo.map(d=>d.h));
 
-  /* ドット描画
-     各時刻ごとに sy(-40cm)（底）から sy(潮位cm)（頂点）まで
-     ピクセル座標で下から上へドットを積み上げる */
-  const R=2.8;
-  const STEP=R*2+1.0;
-  const botPx=sy(YMIN); /* -40cm のy座標（大きい値=下） */
+  /* 現在時刻に最も近いデータ点 */
+  const nowData = nH>=0 ? data.reduce((a,b)=>Math.abs(b.h-nH)<Math.abs(a.h-nH)?b:a, data[0]) : null;
 
-  /* 現在時刻に最も近いデータ点を特定 */
-  const nowData=data.reduce((a,b)=>Math.abs(b.h-nH)<Math.abs(a.h-nH)?b:a,data[0]);
+  /* ドット描画 */
+  const R=2.6, STEP=R*2+1.0;
+  const botPx = sy(YMIN);
 
   data.forEach(d=>{
-    const cx=sx(d.h);
-    const topPx=sy(d.cm);
-    const isNow=(d===nowData);
-    const isSpecial=hiTimes.has(d.h)||loTimes.has(d.h);
-    /* 通常ドットは青、満干潮は黄色（現在時刻でも同様） */
-    const fill=isSpecial?'#ffc800':'#3a8fd4';
+    const cx = sx(d.h);
+    const topPx = sy(d.cm);
+    const isSpecial = hiTimes.has(d.h) || loTimes.has(d.h);
+    const isNow = nowData && d===nowData;
+    const fill = isSpecial ? '#ffc800' : '#3a8fd4';
 
-    /* botPx から topPx まで（下から上へ）ドットを並べる */
-    let py=botPx-R;
-    while(py>=topPx){
-      if(py>=PT-1&&py<=botPx+1){
-        const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-        dot.setAttribute('cx',cx);dot.setAttribute('cy',py);
-        dot.setAttribute('r',R);dot.setAttribute('fill',fill);
+    let py = botPx - R;
+    while(py >= topPx){
+      if(py >= PT-1 && py <= botPx+1){
+        const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('cx',cx); dot.setAttribute('cy',py);
+        dot.setAttribute('r',R); dot.setAttribute('fill',fill);
         sv.appendChild(dot);
       }
-      py-=STEP;
+      py -= STEP;
     }
 
-    /* 現在時刻の頂点ドットだけ赤く・大きく重ね描き */
+    /* 現在時刻の頂点ドット */
     if(isNow){
-      const now_dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      now_dot.setAttribute('cx',cx);now_dot.setAttribute('cy',topPx);
-      now_dot.setAttribute('r',R+2);now_dot.setAttribute('fill','#ff3355');
-      now_dot.setAttribute('stroke','#ffffff');now_dot.setAttribute('stroke-width','1.5');
-      sv.appendChild(now_dot);
-      /* 「現在」テキスト */
-      const now_t=document.createElementNS('http://www.w3.org/2000/svg','text');
-      now_t.setAttribute('x',cx);now_t.setAttribute('y',topPx-8);
-      now_t.setAttribute('text-anchor','middle');now_t.setAttribute('font-size','8');
-      now_t.setAttribute('fill','#ff3355');now_t.setAttribute('font-family','sans-serif');
-      now_t.setAttribute('font-weight','700');now_t.textContent='現在';
-      sv.appendChild(now_t);
+      const nd = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      nd.setAttribute('cx',cx); nd.setAttribute('cy',topPx);
+      nd.setAttribute('r',R+2); nd.setAttribute('fill','#ff3355');
+      nd.setAttribute('stroke','#ffffff'); nd.setAttribute('stroke-width','1.5');
+      sv.appendChild(nd);
+      const nt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      nt.setAttribute('x',cx); nt.setAttribute('y',topPx-7);
+      nt.setAttribute('text-anchor','middle'); nt.setAttribute('font-size','8');
+      nt.setAttribute('fill','#ff3355'); nt.setAttribute('font-family','sans-serif');
+      nt.setAttribute('font-weight','700'); nt.textContent='現在';
+      sv.appendChild(nt);
     }
   });
 
-  /* 満干潮ラベル（グラフ内に配置・上部余白エリアを使用） */
-  const peaks=[...hi.map(d=>({...d,t:'hi'})),...lo.map(d=>({...d,t:'lo'}))].sort((a,b)=>a.h-b.h);
+  /* 満干潮の縦線（グラフ内） */
+  const peaks = [...hi.map(d=>({...d,t:'hi'})), ...lo.map(d=>({...d,t:'lo'}))].sort((a,b)=>a.h-b.h);
   peaks.forEach(d=>{
-    const cx=sx(d.h);
-    const isHi=d.t==='hi';
-    /* 満潮: グラフ上部余白エリア（PT内） / 干潮: グラフ下部余白エリア（PB内） */
-    const labelY=isHi?6:H-4;
-    /* バッジ背景 */
-    const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    br.setAttribute('x',cx-20);br.setAttribute('y',labelY);
-    br.setAttribute('width',40);br.setAttribute('height',14);br.setAttribute('rx','3');
-    br.setAttribute('fill',isHi?'#7a1525':'#12257a');sv.appendChild(br);
-    /* 満潮/干潮テキスト */
-    const bt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    bt.setAttribute('x',cx-8);bt.setAttribute('y',labelY+10);
-    bt.setAttribute('font-size','7');
-    bt.setAttribute('fill',isHi?'#ffbbcc':'#bbccff');
-    bt.setAttribute('font-family','sans-serif');bt.setAttribute('font-weight','700');
-    bt.textContent=isHi?'満潮':'干潮';sv.appendChild(bt);
-    /* 潮位cm */
-    const tv=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tv.setAttribute('x',cx+6);tv.setAttribute('y',labelY+10);
-    tv.setAttribute('font-size','9');
-    tv.setAttribute('fill',isHi?'#ffbbaa':'#aabbff');
-    tv.setAttribute('font-family','sans-serif');tv.setAttribute('font-weight','700');
-    tv.textContent=d.cm+'cm';sv.appendChild(tv);
-    /* 時刻（バッジの外側） */
-    const tt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tt.setAttribute('x',cx);tt.setAttribute('y',isHi?labelY+26:labelY-4);
-    tt.setAttribute('text-anchor','middle');tt.setAttribute('font-size','8');
-    tt.setAttribute('fill',isHi?'#ff9988':'#88aaff');
-    tt.setAttribute('font-family','sans-serif');
-    tt.textContent=fH(d.h);sv.appendChild(tt);
+    const cx = sx(d.h);
+    const isHi = d.t==='hi';
+    /* グラフ底まで点線 */
+    const vl = document.createElementNS('http://www.w3.org/2000/svg','line');
+    vl.setAttribute('x1',cx); vl.setAttribute('y1',sy(d.cm));
+    vl.setAttribute('x2',cx); vl.setAttribute('y2',PT+ch);
+    vl.setAttribute('stroke', isHi?'#e05070':'#5080d0');
+    vl.setAttribute('stroke-width','0.5'); vl.setAttribute('stroke-dasharray','2 2');
+    sv.appendChild(vl);
+  });
+
+  /* ── 下部情報エリア ── */
+  const INFO_Y = GRAPH_H + 4; /* グラフ下端+余白 */
+
+  /* 背景帯 */
+  const infoBg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  infoBg.setAttribute('x',PL); infoBg.setAttribute('y',INFO_Y);
+  infoBg.setAttribute('width',cw); infoBg.setAttribute('height',INFO_H-4);
+  infoBg.setAttribute('fill','#070f1e'); infoBg.setAttribute('rx','3');
+  sv.appendChild(infoBg);
+
+  /* 満干潮ラベルを下部エリアにX座標連動で配置 */
+  peaks.forEach(d=>{
+    const cx = sx(d.h);
+    const isHi = d.t==='hi';
+    const LY = INFO_Y + (isHi ? 2 : 22); /* 満潮=上段 干潮=下段 */
+
+    /* バッジ */
+    const br = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    br.setAttribute('x',cx-22); br.setAttribute('y',LY);
+    br.setAttribute('width',44); br.setAttribute('height',14);
+    br.setAttribute('rx','3');
+    br.setAttribute('fill', isHi?'#6a1020':'#102060');
+    sv.appendChild(br);
+
+    /* 満/干ラベル */
+    const bl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    bl.setAttribute('x',cx-10); bl.setAttribute('y',LY+10);
+    bl.setAttribute('font-size','7'); bl.setAttribute('font-weight','700');
+    bl.setAttribute('fill', isHi?'#ffaabb':'#aabbff');
+    bl.setAttribute('font-family','sans-serif');
+    bl.textContent = isHi?'満潮':'干潮'; sv.appendChild(bl);
+
+    /* 時刻 */
+    const bt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    bt.setAttribute('x',cx+4); bt.setAttribute('y',LY+10);
+    bt.setAttribute('font-size','8'); bt.setAttribute('font-weight','700');
+    bt.setAttribute('fill', isHi?'#ffccaa':'#aaccff');
+    bt.setAttribute('font-family','sans-serif');
+    bt.textContent = fH(d.h); sv.appendChild(bt);
+
+    /* 潮位 */
+    const bv = document.createElementNS('http://www.w3.org/2000/svg','text');
+    bv.setAttribute('x',cx-22); bv.setAttribute('y',LY+22);
+    bv.setAttribute('font-size','8'); bv.setAttribute('font-weight','700');
+    bv.setAttribute('fill', isHi?'#ffddcc':'#ccddff');
+    bv.setAttribute('font-family','sans-serif');
+    bv.textContent = d.cm+'cm'; sv.appendChild(bv);
   });
 }
 
