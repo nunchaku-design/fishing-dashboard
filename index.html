@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>釣果ダッシュボード — 東京湾・相模湾</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --border: rgba(60,58,50,.12);
+  --border2: rgba(60,58,50,.22);
+  --text: #1e1d18;
+  --text2: #6b6a62;
+  --text3: #9e9d96;
+  --blue: #185FA5;
+  --blue-bg: #E6F1FB;
+  --blue-dark: #0C447C;
+  --green: #0F6E56;
+  --green-bg: #E1F5EE;
+  --green-dark: #085041;
+  --pink: #D4537E;
+  --pink-bg: #FBEAF0;
+  --amber: #BA7517;
+  --amber-bg: #FAEEDA;
+  --coral: #993C1D;
+  --coral-bg: #FAECE7;
+  --purple: #533AB7;
+  --purple-bg: #EEEDFE;
+  --teal: #1D9E75;
+  --red: #A32D2D;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  font-size: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── レイアウト ── */
+.page-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── ページヘッダー ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 0.5px solid var(--border2);
+}
+.page-logo {
+  width: 40px; height: 40px;
+  background: var(--blue);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.page-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.page-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.page-header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.header-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  background: var(--blue-bg); color: var(--blue-dark);
+  border: 0.5px solid rgba(24,95,165,.2);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── セクション ── */
+.sec { display: flex; flex-direction: column; gap: 16px; }
+.sec-label {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .1em;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-label::before { content: ''; width: 20px; height: 2px; background: var(--border2); border-radius: 1px; }
+.sec-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+
+/* ── カード ── */
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 12px;
+}
+.surface-card {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+}
+
+/* ── 統計グリッド ── */
+.stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
+.stat-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.stat-value.blue { color: var(--blue); }
+.stat-value.pink { color: var(--pink); }
+.stat-value.green { color: var(--green); }
+
+/* ── メイングリッド ── */
+.main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
+
+/* ── フィルターバー ── */
+.filter-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 4px;
+}
+.filter-bar h2 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.filter-bar p { font-size: 12px; color: var(--text2); }
+.filter-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+input[type="date"],
+select,
+input[type="text"] {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+input:focus, select:focus { border-color: var(--blue); }
+
+/* ── ベイタブ ── */
+.bay-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.bay-tab {
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text2);
+  cursor: pointer; transition: all .15s;
+}
+.bay-tab:hover { border-color: var(--blue); color: var(--blue); }
+.bay-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.bay-tab.active.sagami { background: var(--green); border-color: var(--green); }
+
+/* ── 更新バー ── */
+.update-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  flex-wrap: wrap;
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.ok { background: var(--teal); }
+.status-dot.wait { background: var(--amber); }
+.status-dot.updating { background: var(--blue); animation: pulse .8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.update-text { font-size: 12px; color: var(--text2); }
+.update-cd { font-size: 12px; font-weight: 500; color: var(--text); font-family: 'DM Mono', monospace; }
+.update-btn {
+  margin-left: auto;
+  padding: 5px 14px; font-size: 12px; font-weight: 500;
+  border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  transition: all .15s; font-family: inherit;
+}
+.update-btn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+.update-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── chips ── */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: var(--surface2); color: var(--text2);
+  border: 0.5px solid var(--border);
+}
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+/* ── 釣果リスト ── */
+.catch-list { display: flex; flex-direction: column; gap: 7px; }
+.catch-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+  background: var(--surface);
+}
+.catch-item:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,.06); }
+.catch-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.catch-main { flex: 1; min-width: 0; }
+.catch-name { font-size: 13px; font-weight: 500; }
+.catch-meta { font-size: 11px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catch-note { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catch-right { text-align: right; flex-shrink: 0; }
+.catch-count { font-size: 15px; font-weight: 700; }
+.catch-unit { font-size: 10px; color: var(--text3); }
+.bay-badge {
+  display: inline-block; font-size: 10px; padding: 1px 6px;
+  border-radius: 8px; margin-top: 3px;
+}
+.bay-badge.tokyo { background: var(--blue-bg); color: var(--blue-dark); }
+.bay-badge.sagami { background: var(--green-bg); color: var(--green-dark); }
+.real-badge {
+  display: inline-block; font-size: 9px; padding: 1px 5px;
+  border-radius: 6px; background: var(--coral-bg); color: var(--coral);
+  margin-left: 5px; vertical-align: middle;
+}
+
+/* ── トレンドバー ── */
+.trend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.trend-label { font-size: 12px; width: 72px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trend-bar-bg { flex: 1; height: 7px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.trend-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.trend-val { font-size: 11px; color: var(--text2); width: 32px; text-align: right; font-family: 'DM Mono', monospace; }
+
+/* ── 追加ボタン ── */
+.add-btn {
+  width: 100%; padding: 9px; margin-top: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border2);
+  background: transparent; color: var(--text2);
+  font-size: 12px; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.add-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* ── 更新ログ ── */
+.log-item { display: flex; gap: 8px; font-size: 11px; padding: 4px 0; border-bottom: 0.5px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-time { color: var(--text3); flex-shrink: 0; width: 52px; font-family: 'DM Mono', monospace; }
+.log-msg { color: var(--text); flex: 1; }
+.log-ok { color: var(--teal); }
+.log-err { color: var(--red); }
+
+/* ── マップ ── */
+.map-wrap { border-radius: var(--radius-sm); overflow: hidden; border: 0.5px solid var(--border); margin-bottom: 8px; }
+.map-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.map-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.map-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.map-popup {
+  display: none; padding: 10px 13px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border); background: var(--surface);
+  margin-top: 6px;
+}
+.map-popup h3 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.map-popup p { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+.map-popup-btns { display: flex; gap: 6px; }
+.small-btn {
+  padding: 4px 10px; font-size: 11px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2); background: var(--surface);
+  color: var(--text); cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.small-btn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+.small-btn.secondary:hover { background: var(--surface2); color: var(--text); }
+
+/* ── URL入力 ── */
+.url-fetch { display: flex; flex-direction: column; gap: 7px; }
+.url-fetch input { width: 100%; }
+.fetch-btn {
+  width: 100%; padding: 8px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text);
+  font-size: 12px; cursor: pointer; font-family: inherit; transition: all .15s;
+  font-weight: 500;
+}
+.fetch-btn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* ── 潮位 ── */
+.port-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.port-tab {
+  padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 0.5px solid var(--border2); background: var(--surface); color: var(--text2);
+  cursor: pointer; transition: all .15s;
+}
+.port-tab:hover { border-color: var(--blue); color: var(--blue); }
+.port-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.port-tab.sagami.active { background: var(--green); border-color: var(--green); }
+.tide-mg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tide-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+.tide-table th { font-size: 10px; color: var(--text3); font-weight: 500; padding: 4px 8px; text-align: left; border-bottom: 0.5px solid var(--border); }
+.tide-table td { padding: 5px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+.tide-table tr:last-child td { border-bottom: none; }
+.hi-val { color: var(--pink); font-weight: 700; }
+.lo-val { color: var(--blue); font-weight: 700; }
+.moon-badge {
+  font-size: 11px; padding: 2px 10px; border-radius: 20px;
+  background: var(--surface2); color: var(--text2);
+  border: 0.5px solid var(--border);
+}
+/* ── 風向き・釣座 ── */
+.wind-block { display: flex; align-items: center; gap: 14px; background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; }
+.wind-info-text { flex: 1; }
+.wind-main-val { font-size: 20px; font-weight: 700; color: var(--text); }
+.wind-sub-val { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.fish-seat-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+.fst { padding: 3px 11px; border-radius: 14px; font-size: 11px; font-weight: 500; border: 0.5px solid var(--border2); background: var(--surface); color: var(--text2); cursor: pointer; transition: all .15s; }
+.fst:hover { border-color: var(--purple); color: var(--purple); }
+.fst.active { background: var(--purple); color: var(--purple-bg); border-color: var(--purple); }
+.boat-wrap { display: flex; justify-content: center; margin: 4px 0 10px; }
+.seat-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+.seat-legend-item { display: flex; align-items: center; gap: 5px; }
+.seat-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.seat-advice { padding: 10px 13px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.7; }
+.seat-advice.good { background: var(--green-bg); color: var(--green-dark); border: 0.5px solid #9FE1CB; }
+.seat-advice.fair { background: var(--amber-bg); color: #633806; border: 0.5px solid #FAC775; }
+.seat-advice.poor { background: var(--surface2); color: var(--text2); border: 0.5px solid var(--border2); }
+
+/* ── SNS ── */
+.sns-notice {
+  font-size: 12px; color: var(--text2); padding: 9px 13px;
+  background: var(--surface2); border-radius: var(--radius-sm);
+  border-left: 2px solid var(--border2); line-height: 1.7;
+  margin-bottom: 14px;
+}
+.sns-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.sns-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
+.sns-card-head { display: flex; align-items: center; gap: 10px; }
+.fish-icon-lg { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.sns-card-title { font-size: 14px; font-weight: 700; }
+.sns-card-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.tag-group { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag {
+  display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 10px;
+  background: var(--surface2); color: var(--text2); border: 0.5px solid var(--border);
+  cursor: pointer; transition: all .12s;
+}
+.tag:hover { background: var(--blue-bg); color: var(--blue-dark); border-color: rgba(24,95,165,.3); }
+.tag.area { background: var(--green-bg); color: var(--green-dark); border-color: rgba(15,110,86,.2); }
+.tag.area:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.divider-line { height: 0.5px; background: var(--border); }
+.x-btn-list { display: flex; flex-direction: column; gap: 6px; }
+.x-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 12px; cursor: pointer;
+  text-decoration: none; transition: all .12s; font-family: inherit;
+}
+.x-btn:hover { background: var(--surface2); border-color: var(--border2); }
+.x-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.x-label { flex: 1; text-align: left; font-size: 12px; }
+.x-arrow { color: var(--text3); font-size: 11px; }
+.custom-search-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
+.custom-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+.custom-row input { flex: 1; min-width: 180px; }
+.custom-row select { font-size: 12px; }
+.custom-row button {
+  padding: 7px 16px; font-size: 12px; font-weight: 500;
+  border: 0.5px solid var(--blue); border-radius: var(--radius-sm);
+  background: var(--blue); color: #fff; cursor: pointer; font-family: inherit;
+  white-space: nowrap; transition: all .15s;
+}
+.custom-row button:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+.quick-tips { display: flex; flex-wrap: wrap; gap: 5px; }
+.q-tip {
+  font-size: 11px; padding: 3px 9px; border-radius: 10px;
+  background: var(--surface2); color: var(--text2);
+  cursor: pointer; border: 0.5px solid var(--border); transition: all .12s;
+}
+.q-tip:hover { border-color: var(--border2); color: var(--text); }
+.hints-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.hints-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 10px; }
+.hint-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 9px 11px; }
+.hint-key { font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); margin-bottom: 2px; }
+.hint-val { font-size: 11px; color: var(--text2); }
+
+/* ── 風向きボタン ── */
+.wbtn {
+  padding: 10px 4px; font-size: 12px; font-weight: 500;
+  border-radius: var(--radius-sm); border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text);
+  cursor: pointer; font-family: inherit; text-align: center;
+  transition: all .15s; line-height: 1.3;
+}
+.wbtn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+.wbtn.selected { background: var(--blue); color: #E6F1FB; border-color: var(--blue); font-weight: 700; }
+
+/* ── フッター ── */
+.page-footer {
+  text-align: center; font-size: 11px; color: var(--text3);
+  padding-top: 20px; border-top: 0.5px solid var(--border);
+}
+
+/* ── レスポンシブ ── */
+@media (max-width: 700px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .main-grid { grid-template-columns: 1fr; }
+  .tide-mg { grid-template-columns: 1fr; }
+  .sns-grid { grid-template-columns: 1fr; }
+  .hints-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .hints-grid { grid-template-columns: 1fr; }
+  .page-wrap { padding: 16px 14px 40px; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ── ページヘッダー ── -->
+<header class="page-header">
+  <div class="page-logo">🎣</div>
+  <div>
+    <div class="page-title">釣果ダッシュボード</div>
+    <div class="page-sub">東京湾・相模湾 船宿まとめ</div>
+  </div>
+  <div class="page-header-right">
+    <span class="header-badge" id="header-date"></span>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     セクション1: 釣果
+══════════════════════════════════════ -->
+<section class="sec">
+  <div class="sec-label">釣果ダッシュボード</div>
+
+  <div class="filter-bar">
+    <div>
+      <h2>釣果まとめ</h2>
+      <p>8船宿 実釣データ登録済み</p>
+    </div>
+    <div class="filter-group">
+      <input type="date" id="df">
+      <select id="ff">
+        <option value="">すべての魚種</option>
+        <option>マゴチ</option><option>アマダイ</option><option>タチウオ</option>
+        <option>アジ</option><option>マダイ</option><option>フグ</option>
+        <option>シロギス</option><option>トラフグ</option><option>マルイカ</option>
+        <option>クロムツ</option><option>ヤリイカ</option><option>ヒラメ</option>
+      </select>
+      <select id="bf">
+        <option value="">すべての船宿</option>
+        <option>ミナミ釣船</option><option>かみや</option><option>新明丸</option>
+        <option>野毛屋</option><option>泰造丸</option><option>庄治郎丸</option>
+        <option>喜平治丸</option><option>五エム丸</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="update-bar">
+    <span class="status-dot wait" id="sdot"></span>
+    <span class="update-text" id="ulast">最終更新: まだ更新されていません</span>
+    <span class="update-cd" id="ucd"></span>
+    <button class="update-btn" id="ubtn" onclick="startManualUpdate()">今すぐ更新 ↗</button>
+  </div>
+
+  <div class="bay-tabs">
+    <div class="bay-tab active" onclick="fB('all',this)">すべて</div>
+    <div class="bay-tab" onclick="fB('tokyo',this)">東京湾</div>
+    <div class="bay-tab sagami" onclick="fB('sagami',this)">相模湾</div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">登録船宿数</div><div class="stat-value blue" id="s1">—</div><div class="stat-sub">実釣データあり</div></div>
+    <div class="stat-card"><div class="stat-label">最高釣果</div><div class="stat-value pink" id="s2">—</div><div class="stat-sub" id="s2s">—</div></div>
+    <div class="stat-card"><div class="stat-label">平均釣果</div><div class="stat-value" id="s3">—</div><div class="stat-sub">匹/人（目安）</div></div>
+    <div class="stat-card"><div class="stat-label">好調魚種</div><div class="stat-value green" id="s4" style="font-size:16px">—</div><div class="stat-sub">直近より</div></div>
+  </div>
+
+  <div class="main-grid">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">釣果一覧</div>
+        <div class="chips" id="chips"></div>
+        <div class="catch-list" id="cl"></div>
+        <button class="add-btn" onclick="promptAdd()">+ 船宿URLを追加してAIに読み取らせる ↗</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">更新ログ</div>
+        <div id="ulog"><p style="font-size:12px;color:var(--text3)">まだ更新履歴がありません</p></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">釣り場マップ</div>
+        <div class="map-wrap">
+          <svg id="ms" width="100%" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg" style="display:block;background:#a9cfe8"></svg>
+        </div>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#1e6fb5"></div>東京湾出船</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#0f6e56"></div>相模湾出船</div>
+        </div>
+        <div class="map-popup" id="pp"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">URLから釣果を取得</div>
+        <div class="url-fetch">
+          <p style="font-size:12px;color:var(--text2)">船宿の釣果ページURLを貼り付けて読み取り</p>
+          <input type="text" id="ui" placeholder="https://...">
+          <button class="fetch-btn" onclick="fu()">AIに読み取らせる ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     セクション2: 潮位
+══════════════════════════════════════ -->
+<section class="sec">
+  <div class="sec-label">潮位情報</div>
+
+  <div class="filter-bar">
+    <div>
+      <h2>今日の潮位</h2>
+      <p id="tide-date-label" style="font-size:12px;color:var(--text2)"></p>
+    </div>
+    <span class="moon-badge" id="tmoon"></span>
+  </div>
+
+  <div class="port-tabs" id="ptabs"></div>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">現在潮位</div><div class="stat-value" id="tnow">—</div><div class="stat-sub">cm</div></div>
+    <div class="stat-card"><div class="stat-label">次の満潮</div><div class="stat-value hi-val" id="thi">—</div><div class="stat-sub" id="thit">—</div></div>
+    <div class="stat-card"><div class="stat-label">次の干潮</div><div class="stat-value lo-val" id="tlo">—</div><div class="stat-sub" id="tlot">—</div></div>
+    <div class="stat-card"><div class="stat-label">潮回り</div><div class="stat-value green" id="ttype" style="font-size:16px">—</div><div class="stat-sub" id="tage">—</div></div>
+  </div>
+
+  <div class="tide-mg">
+    <!-- 左：潮位グラフ -->
+    <div class="card">
+      <div class="card-title">本日の潮位グラフ</div>
+      <svg id="tsvg" width="100%" viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+      <table class="tide-table" id="ttbl"></table>
+    </div>
+
+    <!-- 右：風向き＋釣座アドバイス -->
+    <div class="card">
+      <div class="card-title">風向き</div>
+
+      <!-- 8方位ボタン（大きく・タップしやすい） -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">
+        <!-- 上段: 北西・北・北東 -->
+        <button id="wb-315" onclick="setWindDeg(315)" class="wbtn">↖ 北西</button>
+        <button id="wb-0"   onclick="setWindDeg(0)"   class="wbtn wbtn-n">↑ 北</button>
+        <button id="wb-45"  onclick="setWindDeg(45)"  class="wbtn">↗ 北東</button>
+        <!-- 中段: 西・(コンパス)・東 -->
+        <button id="wb-270" onclick="setWindDeg(270)" class="wbtn">← 西</button>
+        <div style="display:flex;align-items:center;justify-content:center">
+          <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" fill="var(--surface2)" stroke="var(--border)" stroke-width="0.5"/>
+            <circle cx="32" cy="32" r="10" fill="var(--surface)" stroke="var(--border)" stroke-width="0.5"/>
+            <g id="wind-arrow-g" transform="rotate(180,32,32)">
+              <polygon points="32,5 28,32 32,26 36,32" fill="var(--pink)" opacity="0.9"/>
+              <polygon points="32,59 28,32 32,38 36,32" fill="var(--text3)" opacity="0.3"/>
+            </g>
+            <text font-size="7" text-anchor="middle" font-family="sans-serif" fill="var(--text3)">
+              <tspan x="32" y="10">N</tspan>
+              <tspan x="56" y="36">E</tspan>
+              <tspan x="32" y="60">S</tspan>
+              <tspan x="8"  y="36">W</tspan>
+            </text>
+          </svg>
+        </div>
+        <button id="wb-90"  onclick="setWindDeg(90)"  class="wbtn">→ 東</button>
+        <!-- 下段: 南西・南・南東 -->
+        <button id="wb-225" onclick="setWindDeg(225)" class="wbtn">↙ 南西</button>
+        <button id="wb-180" onclick="setWindDeg(180)" class="wbtn">↓ 南</button>
+        <button id="wb-135" onclick="setWindDeg(135)" class="wbtn">↘ 南東</button>
+      </div>
+
+      <!-- 自動取得ボタン -->
+      <button onclick="fetchWind(curPt)"
+        style="width:100%;margin-bottom:10px;padding:9px;font-size:12px;font-weight:500;border-radius:var(--radius-sm);border:0.5px solid var(--green);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:inherit"
+        onmouseover="this.style.background='var(--green)';this.style.color='#fff'"
+        onmouseout="this.style.background='var(--green-bg)';this.style.color='var(--green-dark)'">
+        🌀 気象庁から風向きを取得
+      </button>
+      <!-- 選択中の風向き表示 -->
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 13px;margin-bottom:10px">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+          <div style="font-size:20px;font-weight:700;color:var(--text)" id="wind-main">― 未選択</div>
+          <div style="font-size:11px;color:var(--text2);font-weight:500" id="wind-port"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text2)" id="wind-sub">上のボタンで今日の風向きを選択 / または「気象庁から取得」ボタンを押してください</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px" id="wind-time"></div>
+      </div>
+
+
+      <div class="card-title">釣座アドバイス</div>
+      <div class="fish-seat-tabs" id="fish-seat-tabs"></div>
+
+      <!-- 船の平面図 -->
+      <div class="boat-wrap">
+        <svg id="boat-svg" width="240" height="150" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="wba" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/>
+            </marker>
+            <marker id="tba" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round"/>
+            </marker>
+          </defs>
+          <!-- 船体 -->
+          <ellipse cx="120" cy="80" rx="46" ry="25" fill="var(--surface2)" stroke="var(--border2)" stroke-width="1"/>
+          <!-- 船首ポインター -->
+          <polygon points="120,42 110,60 130,60" fill="var(--border2)"/>
+          <!-- ラベル -->
+          <text font-size="9" fill="var(--text3)" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" x="120" y="37">船首</text>
+          <text font-size="9" fill="var(--text3)" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" x="120" y="130">船尾</text>
+          <text font-size="9" fill="var(--text3)" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" x="52" y="83">左舷</text>
+          <text font-size="9" fill="var(--text3)" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" x="188" y="83">右舷</text>
+          <!-- 左舷席 (前・中・後) -->
+          <circle id="sLF" cx="86" cy="65" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <circle id="sLM" cx="80" cy="80" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <circle id="sLR" cx="86" cy="95" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <!-- 右舷席 (前・中・後) -->
+          <circle id="sRF" cx="154" cy="65" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <circle id="sRM" cx="160" cy="80" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <circle id="sRR" cx="154" cy="95" r="9" fill="var(--surface2)" stroke="var(--border2)" stroke-width="0.5"/>
+          <!-- 風向き矢印（船外） -->
+          <line id="wind-arrow-boat" x1="10" y1="80" x2="62" y2="80" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#wba)"/>
+          <!-- 潮流矢印（破線） -->
+          <line id="tide-arrow-boat" x1="120" y1="12" x2="120" y2="45" stroke="var(--pink)" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#tba)"/>
+        </svg>
+      </div>
+
+      <div class="seat-legend">
+        <div class="seat-legend-item"><div class="seat-legend-dot" style="background:var(--teal)"></div>有利</div>
+        <div class="seat-legend-item"><div class="seat-legend-dot" style="background:var(--amber)"></div>普通</div>
+        <div class="seat-legend-item"><div class="seat-legend-dot" style="background:var(--border2)"></div>不利</div>
+        <div class="seat-legend-item" style="gap:3px"><span style="color:var(--blue);font-weight:700">→</span> 風向き</div>
+        <div class="seat-legend-item" style="gap:3px"><span style="color:var(--pink);font-weight:700">⤍</span> 潮流</div>
+      </div>
+
+      <div class="seat-advice fair" id="seat-advice">魚種を選択してください</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     セクション3: SNS
+══════════════════════════════════════ -->
+<section class="sec">
+  <div class="sec-label">SNS 投稿まとめ</div>
+
+  <div class="filter-bar">
+    <div>
+      <h2>X/Twitter 釣り投稿を検索</h2>
+      <p>ワンクリックでXの検索結果を開きます</p>
+    </div>
+  </div>
+
+  <div class="sns-notice">
+    X/Twitter のリアルタイム取得はAPI制限のためウィジェット内では行えません。ボタンをクリックするとXの検索ページがブラウザで直接開きます。
+  </div>
+
+  <div class="sns-grid">
+    <!-- マルイカ -->
+    <div class="sns-card">
+      <div class="sns-card-head">
+        <div class="fish-icon-lg" style="background:var(--purple-bg)">🦑</div>
+        <div>
+          <div class="sns-card-title">マルイカ</div>
+          <div class="sns-card-sub">相模湾 — 剣崎・城ヶ島・江ノ島沖</div>
+        </div>
+      </div>
+      <div class="tag-group">
+        <span class="tag" onclick="ox('#マルイカ',true)">#マルイカ</span>
+        <span class="tag" onclick="ox('#マルイカ釣り',true)">#マルイカ釣り</span>
+        <span class="tag area" onclick="ox('マルイカ 剣崎沖 釣果',true)">剣崎沖</span>
+        <span class="tag area" onclick="ox('マルイカ 城ヶ島沖 釣果',true)">城ヶ島沖</span>
+        <span class="tag area" onclick="ox('マルイカ 江ノ島沖 釣果',true)">江ノ島沖</span>
+      </div>
+      <div class="divider-line"></div>
+      <div class="x-btn-list">
+        <button class="x-btn" onclick="ox('マルイカ 釣果 (釣れた OR 乗った OR 杯) filter:media',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">今日の釣果（写真付き）</span>
+          <span class="x-arrow">↗</span>
+        </button>
+        <button class="x-btn" onclick="ox('マルイカ (喜平治丸 OR 五エム丸 OR 庄治郎丸 OR 泰造丸) 釣果',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">登録船宿の釣果</span>
+          <span class="x-arrow">↗</span>
+        </button>
+        <button class="x-btn" onclick="ox('マルイカ (直結 OR 直ブラ OR ブランコ) (釣果 OR 釣れた OR 乗った)',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">仕掛け別の釣果</span>
+          <span class="x-arrow">↗</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ショウサイフグ -->
+    <div class="sns-card">
+      <div class="sns-card-head">
+        <div class="fish-icon-lg" style="background:#EAF3DE">🐡</div>
+        <div>
+          <div class="sns-card-title">ショウサイフグ</div>
+          <div class="sns-card-sub">東京湾 — 大貫沖・走水沖</div>
+        </div>
+      </div>
+      <div class="tag-group">
+        <span class="tag" onclick="ox('#ショウサイフグ',true)">#ショウサイフグ</span>
+        <span class="tag" onclick="ox('#フグ釣り',true)">#フグ釣り</span>
+        <span class="tag area" onclick="ox('フグ 大貫沖 釣果',true)">大貫沖</span>
+        <span class="tag area" onclick="ox('フグ 走水沖 釣果',true)">走水沖</span>
+        <span class="tag area" onclick="ox('ショウサイフグ トラフグ 混じり',true)">トラフグ混じり</span>
+      </div>
+      <div class="divider-line"></div>
+      <div class="x-btn-list">
+        <button class="x-btn" onclick="ox('ショウサイフグ (釣果 OR 釣れた) filter:media',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">今日の釣果（写真付き）</span>
+          <span class="x-arrow">↗</span>
+        </button>
+        <button class="x-btn" onclick="ox('フグ (新明丸 OR 野毛屋 OR かみや OR ミナミ) 釣果',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">登録船宿の釣果</span>
+          <span class="x-arrow">↗</span>
+        </button>
+        <button class="x-btn" onclick="ox('ショウサイフグ (カットウ OR テンヤ) (釣果 OR 釣れた)',true)">
+          <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span class="x-label">仕掛け別の釣果</span>
+          <span class="x-arrow">↗</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="custom-search-card">
+    <div class="card-title">カスタム検索</div>
+    <div class="custom-row">
+      <input type="text" id="cq" placeholder="例: マルイカ 三浦 釣果">
+      <select id="csort">
+        <option value="live">新着順</option>
+        <option value="top">人気順</option>
+      </select>
+      <button onclick="openCustom()">Xで検索 ↗</button>
+    </div>
+    <div class="quick-tips">
+      <span class="q-tip" onclick="sq('マルイカ (釣果 OR 釣れた OR 乗った) filter:media -RT')">マルイカ 釣果写真</span>
+      <span class="q-tip" onclick="sq('ショウサイフグ (釣果 OR 釣れた) filter:media -RT')">フグ釣果写真</span>
+      <span class="q-tip" onclick="sq('マルイカ (喜平治丸 OR 五エム丸 OR 庄治郎丸 OR 泰造丸) -RT')">登録船宿マルイカ</span>
+      <span class="q-tip" onclick="sq('ショウサイフグ (新明丸 OR 野毛屋 OR かみや) -RT')">登録船宿フグ</span>
+      <span class="q-tip" onclick="sq('マルイカ 相模湾 釣果 min_faves:3 -RT')">人気投稿のみ</span>
+      <span class="q-tip" onclick="sq('ショウサイフグ トラフグ 東京湾 釣果 -RT')">トラフグ混じり</span>
+    </div>
+  </div>
+
+  <div class="hints-card">
+    <div class="card-title">X検索のコツ</div>
+    <div class="hints-grid">
+      <div class="hint-item"><div class="hint-key">filter:media</div><div class="hint-val">画像・動画付き投稿に絞る</div></div>
+      <div class="hint-item"><div class="hint-key">min_faves:5</div><div class="hint-val">いいね5件以上（質重視）</div></div>
+      <div class="hint-item"><div class="hint-key">A OR B</div><div class="hint-val">AまたはBを含む投稿</div></div>
+      <div class="hint-item"><div class="hint-key">since:2026-03-20</div><div class="hint-val">特定日以降に絞る</div></div>
+      <div class="hint-item"><div class="hint-key">-RT</div><div class="hint-val">RTを除外しオリジナルのみ</div></div>
+      <div class="hint-item"><div class="hint-key">lang:ja</div><div class="hint-val">日本語投稿に絞る（自動適用）</div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="page-footer">
+  釣果ダッシュボード — 東京湾・相模湾 &nbsp;|&nbsp; データは各船宿サイトより取得 &nbsp;|&nbsp; 潮位は天文計算による推定値
+</footer>
+
+</div><!-- .page-wrap -->
+
+<script>
+/* ════════════════════════════════════
+   初期化
+════════════════════════════════════ */
+const now0 = new Date();
+document.getElementById('df').value = now0.toISOString().split('T')[0];
+document.getElementById('header-date').textContent =
+  `${now0.getFullYear()}年${now0.getMonth()+1}月${now0.getDate()}日`;
+
+/* ════════════════════════════════════
+   地図描画
+════════════════════════════════════ */
+const CX=139.65,CY=35.28,SC=14000,MW=300,MH=340;
+function proj(ln,la){
+  const x=MW/2+SC*(ln-CX)*Math.PI/180;
+  const y=MH/2-SC*(Math.log(Math.tan(Math.PI/4+la*Math.PI/360))-Math.log(Math.tan(Math.PI/4+CY*Math.PI/360)));
+  return[Math.round(x*10)/10,Math.round(y*10)/10];
+}
+function pts(c){return c.map(([a,b])=>proj(a,b).join(',')).join(' ')}
+const mapSvg=document.getElementById('ms');
+function aP(c,f,s,w=0.5){const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');p.setAttribute('points',pts(c));p.setAttribute('fill',f);p.setAttribute('stroke',s||'#8aac5a');p.setAttribute('stroke-width',w);mapSvg.appendChild(p)}
+function aT(lo,la,tx,sz,cl,fw){const[x,y]=proj(lo,la);const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('text-anchor','middle');t.setAttribute('font-size',sz||9);t.setAttribute('fill',cl||'#1a4d7a');t.setAttribute('font-family','sans-serif');t.setAttribute('font-weight',fw||'400');t.textContent=tx;mapSvg.appendChild(t)}
+aP([[139.09,35.26],[139.12,35.29],[139.15,35.32],[139.20,35.35],[139.25,35.37],[139.28,35.39],[139.32,35.40],[139.35,35.33],[139.38,35.32],[139.41,35.31],[139.44,35.31],[139.47,35.31],[139.50,35.31],[139.52,35.31],[139.55,35.30],[139.58,35.30],[139.61,35.30],[139.57,35.29],[139.55,35.29],[139.56,35.28],[139.56,35.27],[139.56,35.26],[139.57,35.25],[139.57,35.24],[139.57,35.23],[139.57,35.22],[139.57,35.21],[139.57,35.20],[139.56,35.19],[139.56,35.18],[139.56,35.17],[139.56,35.16],[139.56,35.15],[139.57,35.14],[139.57,35.13],[139.58,35.12],[139.59,35.12],[139.60,35.12],[139.61,35.12],[139.62,35.13],[139.62,35.14],[139.63,35.15],[139.64,35.16],[139.65,35.17],[139.65,35.18],[139.66,35.19],[139.66,35.20],[139.67,35.22],[139.67,35.23],[139.67,35.24],[139.68,35.25],[139.69,35.26],[139.70,35.27],[139.70,35.28],[139.71,35.28],[139.71,35.29],[139.72,35.29],[139.72,35.30],[139.73,35.30],[139.73,35.31],[139.64,35.32],[139.63,35.33],[139.63,35.34],[139.62,35.34],[139.62,35.35],[139.62,35.36],[139.62,35.37],[139.62,35.38],[139.62,35.39],[139.63,35.40],[139.63,35.41],[139.63,35.42],[139.63,35.43],[139.63,35.44],[139.63,35.45],[139.64,35.46],[139.65,35.47],[139.66,35.48],[139.67,35.49],[139.68,35.50],[139.69,35.51],[139.70,35.52],[139.71,35.53],[139.72,35.54],[139.73,35.55],[139.73,35.56],[139.74,35.57],[139.75,35.58],[139.76,35.60],[139.76,35.62],[139.76,35.64],[139.76,35.66],[139.77,35.67],[139.78,35.70],[139.00,35.70],[139.00,35.26]],'#d8ebb0','#8aac5a',0.6);
+aP([[139.78,35.70],[139.80,35.68],[139.82,35.66],[139.84,35.64],[139.86,35.62],[139.87,35.60],[139.88,35.58],[139.90,35.56],[139.90,35.54],[139.90,35.52],[139.90,35.50],[139.90,35.48],[139.90,35.46],[139.90,35.44],[139.90,35.42],[139.90,35.40],[139.90,35.38],[139.90,35.36],[139.85,35.31],[139.83,35.30],[139.82,35.28],[139.83,35.27],[139.86,35.25],[139.89,35.23],[139.92,35.22],[139.95,35.22],[139.97,35.23],[140.00,35.20],[140.00,35.70],[139.78,35.70]],'#cee4a0','#8aac5a',0.5);
+aP([[139.76,35.62],[139.78,35.63],[139.80,35.65],[139.82,35.67],[139.85,35.67],[139.88,35.67],[139.90,35.67],[139.90,35.70],[139.00,35.70],[139.76,35.70],[139.76,35.66],[139.76,35.64],[139.76,35.62]],'#d8ebb0','#8aac5a',0.5);
+aP([[139.477,35.301],[139.481,35.303],[139.485,35.302],[139.484,35.300],[139.477,35.300]],'#d8ebb0','#8aac5a',0.3);
+aP([[139.600,35.115],[139.608,35.116],[139.616,35.116],[139.622,35.115],[139.618,35.113],[139.602,35.113]],'#d8ebb0','#8aac5a',0.3);
+aP([[139.848,35.318],[139.852,35.310],[139.850,35.305],[139.843,35.315]],'#cee4a0','#8aac5a',0.3);
+aT(139.77,35.40,'東京湾',10,'#1a5280','500');
+aT(139.32,35.18,'相模湾',10,'#1a5280','500');
+aT(139.48,35.31,'江ノ島',8,'#555');
+aT(139.61,35.11,'城ヶ島',7,'#555');
+aT(139.36,35.33,'平塚',8,'#444');
+
+const SPOTS=[
+  {name:'ミナミ釣船',port:'南六郷',bay:'tokyo',lon:139.726,lat:35.543,fish:'アマダイ・タチウオ'},
+  {name:'かみや',port:'羽田',bay:'tokyo',lon:139.757,lat:35.549,fish:'マゴチ'},
+  {name:'新明丸',port:'鶴見',bay:'tokyo',lon:139.673,lat:35.510,fish:'マゴチ・フグ・シロギス'},
+  {name:'野毛屋',port:'金沢八景',bay:'tokyo',lon:139.614,lat:35.332,fish:'トラフグ・マダイ・アジ'},
+  {name:'泰造丸',port:'三浦',bay:'sagami',lon:139.627,lat:35.155,fish:'ヤリイカ・アマダイ'},
+  {name:'喜平治丸',port:'松輪',bay:'sagami',lon:139.622,lat:35.150,fish:'マルイカ・ヤリイカ・マダイ'},
+  {name:'五エム丸',port:'葉山',bay:'sagami',lon:139.576,lat:35.256,fish:'マルイカ・アマダイ・ヒラメ'},
+  {name:'庄治郎丸',port:'平塚港',bay:'sagami',lon:139.339,lat:35.321,fish:'アジ・アマダイ・クロムツ'},
+];
+const ppEl=document.getElementById('pp'),mI={};
+SPOTS.forEach(s=>{
+  const[x,y]=proj(s.lon,s.lat);const c=s.bay==='tokyo'?'#1e6fb5':'#0f6e56';
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.style.cursor='pointer';
+  const o=document.createElementNS('http://www.w3.org/2000/svg','circle');o.setAttribute('cx',x);o.setAttribute('cy',y);o.setAttribute('r',8);o.setAttribute('fill','white');o.setAttribute('opacity','0.85');g.appendChild(o);
+  const i=document.createElementNS('http://www.w3.org/2000/svg','circle');i.setAttribute('cx',x);i.setAttribute('cy',y);i.setAttribute('r',5);i.setAttribute('fill',c);g.appendChild(i);mI[s.name]=i;
+  [[-2,8,'500','#222',s.name],[7,8,'400','#555',s.port]].forEach(([dy,fs,fw,cl,tx],idx)=>{
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',x+10);t.setAttribute('y',y+dy);t.setAttribute('font-size',fs);t.setAttribute('font-weight',fw);t.setAttribute('fill',cl);t.setAttribute('font-family','sans-serif');t.textContent=tx;mapSvg.appendChild(t);
+  });
+  mapSvg.appendChild(g);
+  g.addEventListener('mouseenter',()=>i.setAttribute('r','7'));
+  g.addEventListener('mouseleave',()=>i.setAttribute('r','5'));
+  g.addEventListener('click',()=>openMapPopup(s));
+});
+function openMapPopup(s){
+  Object.values(mI).forEach(i=>i.setAttribute('r','5'));
+  mI[s.name]&&mI[s.name].setAttribute('r','7');
+  ppEl.style.display='block';
+  ppEl.innerHTML=`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <h3>${s.name}</h3>
+      <span class="bay-badge ${s.bay}">${s.bay==='tokyo'?'東京湾':'相模湾'}</span>
+    </div>
+    <p>${s.port} &nbsp;|&nbsp; 🐟 ${s.fish}</p>
+    <div class="map-popup-btns">
+      <button class="small-btn" onclick="alert('この機能はブラウザ版ではClaude AIと連携できません。\\nClaudeに「${s.name}（${s.port}）の釣り場の特徴や最近の釣果を教えてください」と質問してみましょう！')">詳細を確認</button>
+      <button class="small-btn secondary" onclick="document.getElementById('pp').style.display='none'">✕ 閉じる</button>
+    </div>`;
+}
+
+/* ════════════════════════════════════
+   釣果データ
+════════════════════════════════════ */
+const COL={アジ:'#185FA5',マダイ:'#D4537E',アマダイ:'#D4537E',ヒラメ:'#0F6E56',タコ:'#993C1D',マゴチ:'#0F6E56',タチウオ:'#533AB7',カサゴ:'#BA7517',フグ:'#639922',シロギス:'#BA7517',トラフグ:'#639922',ヤリイカ:'#533AB7',クロムツ:'#444441',マルイカ:'#533AB7'};
+const BG={アジ:'#E6F1FB',マダイ:'#FBEAF0',アマダイ:'#FBEAF0',ヒラメ:'#E1F5EE',タコ:'#FAECE7',マゴチ:'#E1F5EE',タチウオ:'#EEEDFE',カサゴ:'#FAEEDA',フグ:'#EAF3DE',シロギス:'#FAEEDA',トラフグ:'#EAF3DE',ヤリイカ:'#EEEDFE',クロムツ:'#F1EFE8',マルイカ:'#EEEDFE'};
+const ICO={アジ:'🐟',マダイ:'🎣',アマダイ:'🎣',ヒラメ:'🐠',タコ:'🐙',マゴチ:'🐠',タチウオ:'🐟',カサゴ:'🐡',フグ:'🐡',シロギス:'🐟',トラフグ:'🐡',ヤリイカ:'🦑',クロムツ:'🐟',マルイカ:'🦑'};
+const D=[
+  {f:'タチウオ',s:'ミナミ釣船',p:'南六郷',b:'tokyo',lo:0,hi:2,av:1,dt:'2026-03-18',note:'本牧沖40m'},
+  {f:'アマダイ',s:'ミナミ釣船',p:'南六郷',b:'tokyo',lo:0,hi:6,av:3,dt:'2026-03-18',note:'保田沖・最大46cm'},
+  {f:'アマダイ',s:'ミナミ釣船',p:'南六郷',b:'tokyo',lo:0,hi:4,av:2,dt:'2026-03-15',note:'保田沖・最大43cm'},
+  {f:'マゴチ',s:'かみや',p:'羽田',b:'tokyo',lo:0,hi:5,av:2,dt:'2026-03-16',note:'木更津沖〜海堡'},
+  {f:'マゴチ',s:'新明丸',p:'鶴見',b:'tokyo',lo:6,hi:10,av:8,dt:'2026-03-18',note:'近場〜大貫沖・36〜55cm'},
+  {f:'フグ',s:'新明丸',p:'鶴見',b:'tokyo',lo:0,hi:7,av:3,dt:'2026-03-18',note:'大貫沖・ショウサイ主体'},
+  {f:'マゴチ',s:'新明丸',p:'鶴見',b:'tokyo',lo:1,hi:9,av:4,dt:'2026-03-17',note:'近場〜大貫沖'},
+  {f:'シロギス',s:'新明丸',p:'鶴見',b:'tokyo',lo:18,hi:60,av:35,dt:'2026-03-15',note:'中ノ瀬沖'},
+  {f:'トラフグ',s:'野毛屋',p:'金沢八景',b:'tokyo',lo:0,hi:1,av:1,dt:'2026-03-18',note:'最大4.8kg・白子入り'},
+  {f:'マダイ',s:'野毛屋',p:'金沢八景',b:'tokyo',lo:0,hi:5,av:2,dt:'2026-03-18',note:'八景沖・最大3.1kg'},
+  {f:'マダイ',s:'野毛屋',p:'金沢八景',b:'tokyo',lo:1,hi:5,av:3,dt:'2026-03-17',note:'全員ゲット・最大2.7kg'},
+  {f:'アジ',s:'野毛屋',p:'金沢八景',b:'tokyo',lo:15,hi:65,av:35,dt:'2026-03-14',note:'午前LTアジ'},
+  {f:'ヤリイカ',s:'泰造丸',p:'三浦',b:'sagami',lo:0,hi:24,av:10,dt:'2026-03-18',note:'鷹ノ巣〜烏帽子沖'},
+  {f:'アマダイ',s:'泰造丸',p:'三浦',b:'sagami',lo:0,hi:4,av:2,dt:'2026-03-17',note:'フコ〜御前沖・最大38cm'},
+  {f:'ヤリイカ',s:'泰造丸',p:'三浦',b:'sagami',lo:8,hi:51,av:25,dt:'2026-03-12',note:'鷹ノ巣沖・トップ51杯'},
+  {f:'アジ',s:'庄治郎丸',p:'平塚',b:'sagami',lo:15,hi:40,av:25,dt:'2026-03-18',note:'LT五目'},
+  {f:'アマダイ',s:'庄治郎丸',p:'平塚',b:'sagami',lo:0,hi:10,av:4,dt:'2026-03-18',note:'最大51.5cm！'},
+  {f:'クロムツ',s:'庄治郎丸',p:'平塚',b:'sagami',lo:4,hi:16,av:8,dt:'2026-03-18',note:'根魚五目・20〜38cm'},
+  {f:'アジ',s:'庄治郎丸',p:'平塚',b:'sagami',lo:26,hi:57,av:38,dt:'2026-03-16',note:'23〜32cm・ヒラメ3kg混じり'},
+  {f:'マルイカ',s:'庄治郎丸',p:'平塚',b:'sagami',lo:0,hi:8,av:4,dt:'2026-03-15',note:'17〜25cm'},
+  {f:'マルイカ',s:'喜平治丸',p:'松輪',b:'sagami',lo:0,hi:41,av:18,dt:'2026-03-18',note:'剣崎沖〜城ヶ島・トップ41杯'},
+  {f:'ヤリイカ',s:'喜平治丸',p:'松輪',b:'sagami',lo:5,hi:16,av:10,dt:'2026-03-18',note:'沖の瀬沖200〜280m'},
+  {f:'マダイ',s:'喜平治丸',p:'松輪',b:'sagami',lo:1,hi:4,av:2,dt:'2026-03-17',note:'剣崎沖〜久里浜沖'},
+  {f:'マルイカ',s:'喜平治丸',p:'松輪',b:'sagami',lo:0,hi:15,av:6,dt:'2026-03-16',note:'剣崎沖70〜90m'},
+  {f:'マダイ',s:'喜平治丸',p:'松輪',b:'sagami',lo:2,hi:7,av:4,dt:'2026-03-13',note:'剣崎沖〜久里浜沖'},
+  {f:'アマダイ',s:'五エム丸',p:'葉山',b:'sagami',lo:0,hi:5,av:2,dt:'2026-03-20',note:'最大49cm！'},
+  {f:'マルイカ',s:'五エム丸',p:'葉山',b:'sagami',lo:8,hi:25,av:16,dt:'2026-03-18',note:'江ノ島沖80〜90m・トップ25杯'},
+  {f:'アマダイ',s:'五エム丸',p:'葉山',b:'sagami',lo:1,hi:4,av:2,dt:'2026-03-17',note:'最大41cm'},
+  {f:'ヒラメ',s:'五エム丸',p:'葉山',b:'sagami',lo:0,hi:2,av:1,dt:'2026-03-17',note:'船中4枚・頭1kg'},
+  {f:'マルイカ',s:'五エム丸',p:'葉山',b:'sagami',lo:12,hi:15,av:13,dt:'2026-03-16',note:'江ノ島沖80〜95m'},
+];
+
+let bay='all', isUpd=false, lastUpdDate=null, uLogs=[];
+const FUNAYADO=[
+  {name:'ミナミ釣船',port:'南六郷',bay:'tokyo',url:'https://www.minami-23.com/#'},
+  {name:'かみや',port:'羽田',bay:'tokyo',url:'https://www.haneda-kamiya.com/#'},
+  {name:'新明丸',port:'鶴見',bay:'tokyo',url:'http://shinmyomaru.com/category/tyouka'},
+  {name:'野毛屋',port:'金沢八景',bay:'tokyo',url:'https://www.nogeya.com/category/Choka/'},
+  {name:'泰造丸',port:'三浦',bay:'sagami',url:'http://taizoumaru.seesaa.net/'},
+  {name:'庄治郎丸',port:'平塚港',bay:'sagami',url:'https://shojiromaru.net/catch.html'},
+  {name:'喜平治丸',port:'松輪',bay:'sagami',url:'https://kiheijimaru.co/category/tsuriseika/'},
+  {name:'五エム丸',port:'葉山',bay:'sagami',url:'https://www2.goemumaru.com/#'},
+];
+
+function fmtN(){const n=new Date();return`${n.getMonth()+1}/${n.getDate()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`}
+function addLog(msg,tp=''){
+  uLogs.unshift({t:fmtN(),m:msg,tp});
+  if(uLogs.length>20)uLogs.pop();
+  const el=document.getElementById('ulog');
+  el.innerHTML=uLogs.map(l=>`<div class="log-item"><span class="log-time">${l.t}</span><span class="log-msg ${l.tp}">${l.m}</span></div>`).join('');
+}
+function setSt(st){document.getElementById('sdot').className='status-dot '+st}
+function updCd(){
+  const now=new Date(),today=now.toISOString().split('T')[0];
+  if(now.getHours()>=18&&lastUpdDate!==today){triggerAuto();return}
+  const nx=new Date(now);if(now.getHours()>=18)nx.setDate(nx.getDate()+1);nx.setHours(18,0,0,0);
+  const df=nx-now,h=Math.floor(df/3600000),m=Math.floor((df%3600000)/60000);
+  document.getElementById('ulast').textContent=lastUpdDate?`最終更新: ${lastUpdDate} 18:00`:'最終更新: まだ更新されていません';
+  document.getElementById('ucd').textContent=lastUpdDate===today?'本日更新済み ✓':`次回更新まで ${h}時間${m}分`;
+  setSt(lastUpdDate===today?'ok':'wait');
+}
+async function triggerAuto(){const today=new Date().toISOString().split('T')[0];if(isUpd||lastUpdDate===today)return;isUpd=true;setSt('updating');document.getElementById('ubtn').disabled=true;document.getElementById('ucd').textContent='自動更新中...';addLog('18:00 自動更新を開始');await runUpd();lastUpdDate=today;isUpd=false;document.getElementById('ubtn').disabled=false;setSt('ok');document.getElementById('ucd').textContent='本日更新済み ✓';document.getElementById('ulast').textContent=`最終更新: ${today} 18:00`}
+async function startManualUpdate(){if(isUpd)return;isUpd=true;setSt('updating');document.getElementById('ubtn').disabled=true;document.getElementById('ucd').textContent='更新中...';addLog('手動更新を開始');await runUpd();const today=new Date().toISOString().split('T')[0];lastUpdDate=today;isUpd=false;document.getElementById('ubtn').disabled=false;setSt('ok');document.getElementById('ucd').textContent='更新完了 ✓';document.getElementById('ulast').textContent=`最終更新: ${fmtN()}`}
+async function runUpd(){
+  for(const f of FUNAYADO){
+    addLog(`${f.name} を取得中...`);
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`船宿名: ${f.name}\n港: ${f.port}\nURL: ${f.url}\n直近7日分の釣果をJSON配列のみで返してください:\n[{"fish":"魚種","min":0,"max":0,"avg":0,"date":"YYYY-MM-DD","note":"備考"}]\nデータがなければ[]`}]})});
+      if(!res.ok)throw new Error(res.status);
+      const d=await res.json();
+      const tx=d.content?.find(c=>c.type==='text')?.text||'[]';
+      const parsed=JSON.parse(tx.replace(/```json|```/g,'').trim());
+      if(parsed&&parsed.length>0){mergeD(f.name,parsed);addLog(`${f.name}: ${parsed.length}件を更新`,'log-ok')}
+      else addLog(`${f.name}: データなし`,'log-err');
+    }catch(e){addLog(`${f.name}: 失敗`,'log-err')}
+    await new Promise(r=>setTimeout(r,500));
+  }
+  refreshCatch();addLog('全船宿の更新完了','log-ok');
+}
+function mergeD(name,nd){const f=FUNAYADO.find(x=>x.name===name);if(!f)return;const kept=D.filter(x=>x.s!==name);nd.forEach(i=>{if(i.fish&&i.date)kept.push({f:i.fish,s:name,p:f.port,b:f.bay,lo:i.min||0,hi:i.max||0,av:i.avg||0,dt:i.date,note:i.note||''})});D.length=0;kept.forEach(x=>D.push(x))}
+function gf(){let d=[...D];if(bay!=='all')d=d.filter(x=>x.b===bay);const f=document.getElementById('ff').value;if(f)d=d.filter(x=>x.f===f);const s=document.getElementById('bf').value;if(s)d=d.filter(x=>x.s===s);return d}
+function rChips(d){const ss=[...new Set(d.map(x=>x.s))];document.getElementById('chips').innerHTML=ss.map(s=>`<span class="chip"><span class="chip-dot" style="background:#185FA5"></span>${s}</span>`).join('')}
+function rList(d){
+  /* 船別→日付降順でソート */
+  const BOAT_ORDER=['ミナミ釣船','かみや','新明丸','野毛屋','泰造丸','庄治郎丸','喜平治丸','五エム丸'];
+  const sorted=[...d].sort((a,b)=>{
+    const oa=BOAT_ORDER.indexOf(a.s), ob=BOAT_ORDER.indexOf(b.s);
+    if(oa!==ob) return (oa<0?999:oa)-(ob<0?999:ob);
+    return b.dt.localeCompare(a.dt);
+  });
+  /* 船宿ヘッダーを挟みながらレンダリング */
+  let html='', lastBoat='';
+  sorted.forEach(x=>{
+    if(x.s!==lastBoat){
+      const bayBadge=x.b==='tokyo'
+        ?'<span class="bay-badge tokyo">東京湾</span>'
+        :'<span class="bay-badge sagami">相模湾</span>';
+      html+=`<div style="padding:8px 2px 4px;font-size:12px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);margin-top:${lastBoat?'12px':'0'}">${x.s} ${bayBadge}<span style="font-size:10px;font-weight:400;color:var(--text2);margin-left:4px">${x.p}</span></div>`;
+      lastBoat=x.s;
+    }
+    const cs=x.lo===x.hi?`${x.hi}`:`${x.lo}〜${x.hi}`;
+    html+=`<div class="catch-item" onclick="openMapPopup(SPOTS.find(s=>s.name==='${x.s}')||{name:'${x.s}',port:'${x.p}',bay:'${x.b}',fish:''})">
+      <div class="catch-icon" style="background:${BG[x.f]||'#F1EFE8'}">${ICO[x.f]||'🐟'}</div>
+      <div class="catch-main">
+        <div class="catch-name">${x.f}</div>
+        <div class="catch-meta">${x.dt}${x.note?' — '+x.note:''}</div>
+      </div>
+      <div class="catch-right">
+        <div class="catch-count" style="color:${COL[x.f]||'#888'}">${cs}</div>
+        <div class="catch-unit">匹/人</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('cl').innerHTML=html;
+}
+function rTrends(d){/* 魚種別釣果グラフ廃止 */}
+function rStats(d){document.getElementById('s1').textContent=[...new Set(d.map(x=>x.s))].length;const mx=d.reduce((a,b)=>a.hi>b.hi?a:b,d[0]||{hi:0});document.getElementById('s2').textContent=mx.hi||0;document.getElementById('s2s').textContent=mx.f?`${mx.f}/${mx.s}`:'-';const av=d.length?Math.round(d.reduce((s,x)=>s+x.av,0)/d.length):0;document.getElementById('s3').textContent=av;const fm={};d.forEach(x=>fm[x.f]=(fm[x.f]||0)+x.av);const hot=Object.entries(fm).sort((a,b)=>b[1]-a[1])[0];document.getElementById('s4').textContent=hot?hot[0]:'-'}
+function refreshCatch(){const d=gf();rChips(d);rList(d);rTrends(d);rStats(d)}
+function fB(b,el){bay=b;document.querySelectorAll('.bay-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');refreshCatch()}
+function fu(){const u=document.getElementById('ui').value.trim();if(!u)return;alert(`以下のURLの釣果をClaude AIに読み取らせるには、Claudeのチャット画面でこのメッセージを送ってください:\n\n「この船宿の釣果ページを読んで、船宿名・魚種・釣果数・日付をまとめてください：${u}」`)}
+function promptAdd(){alert('船宿のURLをClaude AIのチャット画面に貼り付け、「この船宿の釣果ページを読んで、船宿名・魚種・釣果数・日付をまとめてください：[URL]」と送信してください。')}
+document.getElementById('ff').addEventListener('change',refreshCatch);
+document.getElementById('bf').addEventListener('change',refreshCatch);
+document.getElementById('df').addEventListener('change',refreshCatch);
+
+/* ════════════════════════════════════
+   潮位 + 風向き + 釣座
+════════════════════════════════════ */
+const PORTS=[
+  /* 東京湾 */
+  {name:'横浜',  bay:'tokyo', pc:14,hc:1, lat:35.443,lon:139.638},
+  {name:'羽田',  bay:'tokyo', pc:14,hc:1, lat:35.549,lon:139.757},
+  {name:'鶴見',  bay:'tokyo', pc:14,hc:1, lat:35.510,lon:139.673},
+  /* 相模湾 */
+  {name:'三浦',  bay:'sagami',pc:14,hc:5, lat:35.162,lon:139.621},
+  {name:'平塚',  bay:'sagami',pc:14,hc:8, lat:35.328,lon:139.349},
+  {name:'小田原',bay:'sagami',pc:14,hc:10,lat:35.255,lon:139.157},
+];
+
+/* 魚種別釣座ルール
+   rule: 'tide_head' 潮先有利 / 'wind_lee' 風下有利
+         'both' 潮先+風下両方考慮 / 'any' 差なし
+*/
+const FISH_SEATS=[
+  {f:'マルイカ',ico:'🦑',rule:'tide_head',
+   desc:'潮先（仕掛けが素直に落ちる側）が有利。直結・直ブラは特に潮先で差が出ます。',
+   tip:'上げ潮なら右舷、下げ潮なら左舷が多い（航路・海域による）'},
+  {f:'ショウサイフグ',ico:'🐡',rule:'both',
+   desc:'風下かつ潮先が理想。カットウ仕掛けはラインが船下に入る方が根掛かりも減ります。',
+   tip:'テンヤは特に風向きの影響が大きい。風が強い日ほど差が出ます'},
+  {f:'アマダイ',ico:'🎣',rule:'tide_head',
+   desc:'潮先側が有利。深場（60〜100m）のため風の直接影響は小さい。大潮時は両舷差なし。',
+   tip:'胴付き仕掛けより片天秤の方が潮の影響を受けやすい'},
+  {f:'マゴチ',ico:'🐠',rule:'wind_lee',
+   desc:'風下側（ラインが船体から離れる側）が仕掛けを安定させやすく有利。',
+   tip:'胴突き仕掛けは風の影響を強く受けるため風下で安定する'},
+  {f:'マダイ',ico:'🎣',rule:'any',
+   desc:'コマセ釣りのため基本的に両舷差なし。船が潮に対して横向きの場合は潮先が微有利。',
+   tip:'コマセの流れ方で変わる。潮が速い日は潮先側のコマセが遠くに流れる'},
+];
+
+let curPt=PORTS[0], tideData=[], windDeg=null, windSpd=null, curFishIdx=0;
+
+/* ── 天文計算 ── */
+function toR(d){return d*Math.PI/180}
+function jd(dt){let y=dt.getFullYear(),m=dt.getMonth()+1,d=dt.getDate();if(m<=2){y--;m+=12;}const A=Math.floor(y/100),B=2-A+Math.floor(A/4);return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5}
+function mAge(dt){return((jd(dt)-2451550.1)%29.530589+29.530589)%29.530589}
+function mLbl(a){if(a<1||a>28.5)return'🌑 新月';if(a<6.5)return'🌒 三日月';if(a<8.5)return'🌓 上弦';if(a<13)return'🌔 十三夜';if(a<15.5)return'🌕 満月';if(a<21)return'🌖 十六夜';if(a<22.5)return'🌗 下弦';return'🌘 有明月'}
+function ttType(a){const d=Math.min(Math.abs(a),Math.abs(a-14.77),Math.abs(a-29.53));if(d<=2)return{t:'大潮',i:8};if(d<=4)return{t:'中潮',i:5};if(d<=6)return{t:'小潮',i:2};if(d<=7)return{t:'長潮',i:1};return{t:'若潮',i:1}}
+function calcT(p,dt,h){
+  /* 角速度ベース潮位推算（実データからフィッティングした位相使用）
+     基準: 2026/3/22 00:00 JST を t=0 とする
+     各分潮の角速度(deg/h): M2=28.984 S2=30.000 K1=15.041 O1=13.943 */
+  const OM={M2:28.9841042,S2:30.0,K1:15.0410686,O1:13.9430356};
+
+  /* 港ごとの調和定数 [MSL, M2振幅, phi_M2, S2振幅, phi_S2, K1振幅, phi_K1, O1振幅, phi_O1]
+     位相は2026/3/22 00:00 JSTを基準に実データからフィッティング */
+  const P={
+    横浜:  [103,84,189,17,53,18,  6,10,22],
+    羽田:  [103,84,189,17,53,18,  6,10,22],
+    鶴見:  [103,84,189,17,53,18,  6,10,22],
+    三浦:  [ 95,72,195,14,58,15,  8, 8,26],
+    平塚:  [ 92,68,198,13,61,14, 10, 8,28],
+    小田原:[ 88,65,201,12,63,13, 12, 7,30],
+  };
+  const c=P[p.name]||P['横浜'];
+
+  /* 基準日時(2026/3/22 00:00 JST)からの経過時間 */
+  const baseMs=Date.UTC(2026,2,21,15,0,0); /* UTC = JST-9h */
+  const curMs=Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())+h*3600000;
+  const t=(curMs-baseMs)/3600000; /* 経過時間(時) */
+
+  const cos=x=>Math.cos(x*Math.PI/180);
+  return Math.round(c[0]
+    +c[1]*cos(OM.M2*t-c[2])
+    +c[3]*cos(OM.S2*t-c[4])
+    +c[5]*cos(OM.K1*t-c[6])
+    +c[7]*cos(OM.O1*t-c[8]));
+}
+function bTA(p,dt){const a=[];for(let h=0;h<=24;h+=0.5)a.push({h,cm:calcT(p,dt,h)});return a}
+function extr(data){const hi=[],lo=[];for(let i=1;i<data.length-1;i++){if(data[i].cm>=data[i-1].cm&&data[i].cm>=data[i+1].cm)hi.push(data[i]);if(data[i].cm<=data[i-1].cm&&data[i].cm<=data[i+1].cm)lo.push(data[i]);}return{hi,lo}}
+function fH(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`}
+
+/* ── 潮位グラフ（ドット形式・chowari.jp風）── */
+function drawTide(data,nH){
+  const sv=document.getElementById('tsvg');
+  sv.innerHTML='';
+  const W=520,H=230,PL=44,PR=14,PT=28,PB=28;
+  const cw=W-PL-PR, ch=H-PT-PB;
+  const YMIN=-40,YMAX=200;
+  const sx=h=>PL+h/24*cw;
+  const sy=c=>PT+ch*(1-(c-YMIN)/(YMAX-YMIN));
+
+  /* 背景（濃紺） */
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('x',PL);bg.setAttribute('y',PT);
+  bg.setAttribute('width',cw);bg.setAttribute('height',ch);
+  bg.setAttribute('fill','#0a1a2e');sv.appendChild(bg);
+
+  /* 水平グリッド & 縦軸ラベル */
+  [-40,0,50,100,150,200].forEach(v=>{
+    const y=sy(v);
+    const gl=document.createElementNS('http://www.w3.org/2000/svg','line');
+    gl.setAttribute('x1',PL);gl.setAttribute('y1',y);gl.setAttribute('x2',W-PR);gl.setAttribute('y2',y);
+    gl.setAttribute('stroke',v===0?'#2a4f8a':'#162d50');gl.setAttribute('stroke-width',v===0?'1':'0.5');
+    sv.appendChild(gl);
+    const tl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl.setAttribute('x',PL-4);tl.setAttribute('y',y+3.5);
+    tl.setAttribute('text-anchor','end');tl.setAttribute('font-size','9');
+    tl.setAttribute('fill','#5a80aa');tl.setAttribute('font-family','sans-serif');
+    tl.textContent=v+'cm';sv.appendChild(tl);
+  });
+
+  /* 垂直グリッド & 時間軸 */
+  [0,6,12,18,24].forEach(h=>{
+    const x=sx(h);
+    const vl=document.createElementNS('http://www.w3.org/2000/svg','line');
+    vl.setAttribute('x1',x);vl.setAttribute('y1',PT);vl.setAttribute('x2',x);vl.setAttribute('y2',PT+ch);
+    vl.setAttribute('stroke','#162d50');vl.setAttribute('stroke-width','0.5');sv.appendChild(vl);
+    const tl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tl.setAttribute('x',x);tl.setAttribute('y',H-8);
+    tl.setAttribute('text-anchor','middle');tl.setAttribute('font-size','9');
+    tl.setAttribute('fill','#5a80aa');tl.setAttribute('font-family','sans-serif');
+    tl.textContent=h+':00';sv.appendChild(tl);
+  });
+
+  /* 満干潮を特定 */
+  const{hi,lo}=extr(data);
+  const hiTimes=new Set(hi.map(d=>d.h));
+  const loTimes=new Set(lo.map(d=>d.h));
+
+  /* ドット描画
+     各時刻ごとに sy(-40cm)（底）から sy(潮位cm)（頂点）まで
+     ピクセル座標で下から上へドットを積み上げる */
+  const R=2.8;
+  const STEP=R*2+1.0;
+  const botPx=sy(YMIN); /* -40cm のy座標（大きい値=下） */
+
+  /* 現在時刻に最も近いデータ点を特定 */
+  const nowData=data.reduce((a,b)=>Math.abs(b.h-nH)<Math.abs(a.h-nH)?b:a,data[0]);
+
+  data.forEach(d=>{
+    const cx=sx(d.h);
+    const topPx=sy(d.cm);
+    const isNow=(d===nowData);
+    const isSpecial=hiTimes.has(d.h)||loTimes.has(d.h);
+    /* 通常ドットは青、満干潮は黄色（現在時刻でも同様） */
+    const fill=isSpecial?'#ffc800':'#3a8fd4';
+
+    /* botPx から topPx まで（下から上へ）ドットを並べる */
+    let py=botPx-R;
+    while(py>=topPx){
+      if(py>=PT-1&&py<=botPx+1){
+        const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('cx',cx);dot.setAttribute('cy',py);
+        dot.setAttribute('r',R);dot.setAttribute('fill',fill);
+        sv.appendChild(dot);
+      }
+      py-=STEP;
+    }
+
+    /* 現在時刻の頂点ドットだけ赤く・大きく重ね描き */
+    if(isNow){
+      const now_dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      now_dot.setAttribute('cx',cx);now_dot.setAttribute('cy',topPx);
+      now_dot.setAttribute('r',R+2);now_dot.setAttribute('fill','#ff3355');
+      now_dot.setAttribute('stroke','#ffffff');now_dot.setAttribute('stroke-width','1.5');
+      sv.appendChild(now_dot);
+      /* 「現在」テキスト */
+      const now_t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      now_t.setAttribute('x',cx);now_t.setAttribute('y',topPx-8);
+      now_t.setAttribute('text-anchor','middle');now_t.setAttribute('font-size','8');
+      now_t.setAttribute('fill','#ff3355');now_t.setAttribute('font-family','sans-serif');
+      now_t.setAttribute('font-weight','700');now_t.textContent='現在';
+      sv.appendChild(now_t);
+    }
+  });
+
+  /* 満干潮ラベル */
+  const peaks=[...hi.map(d=>({...d,t:'hi'})),...lo.map(d=>({...d,t:'lo'}))].sort((a,b)=>a.h-b.h);
+  peaks.forEach(d=>{
+    const cx=sx(d.h);
+    const isHi=d.t==='hi';
+    const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    br.setAttribute('x',cx-13);br.setAttribute('y',isHi?2:H+2);
+    br.setAttribute('width',26);br.setAttribute('height',11);br.setAttribute('rx','3');
+    br.setAttribute('fill',isHi?'#7a1525':'#12257a');sv.appendChild(br);
+    const bt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    bt.setAttribute('x',cx);bt.setAttribute('y',isHi?10:H+10);
+    bt.setAttribute('text-anchor','middle');bt.setAttribute('font-size','7');
+    bt.setAttribute('fill',isHi?'#ffbbcc':'#bbccff');
+    bt.setAttribute('font-family','sans-serif');bt.setAttribute('font-weight','700');
+    bt.textContent=isHi?'満潮':'干潮';sv.appendChild(bt);
+    const tt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tt.setAttribute('x',cx);tt.setAttribute('y',isHi?PT-14:H+2);
+    tt.setAttribute('text-anchor','middle');tt.setAttribute('font-size','8');
+    tt.setAttribute('fill',isHi?'#ff9988':'#88aaff');
+    tt.setAttribute('font-family','sans-serif');
+    tt.textContent=fH(d.h);sv.appendChild(tt);
+    const tv=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tv.setAttribute('x',cx);tv.setAttribute('y',isHi?PT-5:H+12);
+    tv.setAttribute('text-anchor','middle');tv.setAttribute('font-size','10');
+    tv.setAttribute('fill',isHi?'#ffbbaa':'#aabbff');
+    tv.setAttribute('font-family','sans-serif');tv.setAttribute('font-weight','700');
+    tv.textContent=d.cm+'cm';sv.appendChild(tv);
+  });
+}
+
+function buildTTbl(data){
+  const{hi,lo}=extr(data);
+  const rows=[...hi.map(d=>({...d,t:'hi'})),...lo.map(d=>({...d,t:'lo'}))].sort((a,b)=>a.h-b.h);
+  let h='<tr><th>時刻</th><th>種別</th><th>潮位</th></tr>';
+  rows.forEach(r=>{const cl=r.t==='hi'?'hi-val':'lo-val';h+=`<tr><td>${fH(r.h)}</td><td class="${cl}">${r.t==='hi'?'満潮':'干潮'}</td><td class="${cl}">${r.cm} cm</td></tr>`});
+  document.getElementById('ttbl').innerHTML=h;
+}
+
+/* ── 風向き（気象庁予報JSON + 手動入力）── */
+const DIR16=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+function degToDir(d){return DIR16[Math.round(((d%360)+360)/22.5)%16]}
+
+/* 気象庁 forecast JSONのエリア設定
+   神奈川: 140000.json / 東部=140010（横浜・川崎・鶴見・羽田・金沢八景） / 西部=140020（平塚・小田原）
+   三浦半島は神奈川東部(140010)でカバー
+   東京都: 130000.json / 東京地方=130010（参考：東京湾岸）
+*/
+const PORT_JMA={
+  '横浜':   {pref:'140000', areaCode:'140010'},
+  '羽田':   {pref:'140000', areaCode:'140010'},  /* 神奈川東部（羽田は実質東京湾岸） */
+  '鶴見':   {pref:'140000', areaCode:'140010'},
+  '三浦':   {pref:'140000', areaCode:'140010'},  /* 神奈川東部で代用 */
+  '平塚':   {pref:'140000', areaCode:'140020'},
+  '小田原': {pref:'140000', areaCode:'140020'},
+};
+
+/* 全角数字・スペースを正規化してパース */
+function normalizeWindText(txt){
+  return txt
+    .replace(/　/g,' ')
+    .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0))
+    .replace(/　/g,' ');
+}
+
+/* "北の風 やや強く" → deg変換 */
+function parseWindText(txt){
+  if(!txt)return null;
+  const norm=normalizeWindText(txt);
+  const MAP={
+    '北北東':22.5,'北東':45,'東北東':67.5,'東':90,'東南東':112.5,
+    '南東':135,'南南東':157.5,'南':180,'南南西':202.5,'南西':225,
+    '西南西':247.5,'西':270,'西北西':292.5,'北西':315,'北北西':337.5,'北':0
+  };
+  /* 長いものから優先マッチ（例:「北東」より「北北東」を先に） */
+  for(const k of Object.keys(MAP).sort((a,b)=>b.length-a.length)){
+    if(norm.includes(k+'の風')||norm.includes(k+'風'))return MAP[k];
+  }
+  return null;
+}
+
+async function fetchWind(p){
+  const mainEl=document.getElementById('wind-main');
+  const subEl=document.getElementById('wind-sub');
+  mainEl.textContent='気象庁から取得中...';
+  subEl.textContent='';
+  try{
+    const cfg=PORT_JMA[p.name]||PORT_JMA['横浜'];
+    const url=`https://www.jma.go.jp/bosai/forecast/data/forecast/${cfg.pref}.json`;
+    const res=await Promise.race([
+      fetch(url),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('タイムアウト')),6000))
+    ]);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const json=await res.json();
+
+    /* json[0].timeSeries[0].areas から対象エリアを取得 */
+    const areas=json[0]?.timeSeries?.[0]?.areas;
+    if(!areas)throw new Error('areasが見つからない');
+    const area=areas.find(a=>a.area?.code===cfg.areaCode)||areas[0];
+    if(!area)throw new Error('エリアコード'+cfg.areaCode+'が見つからない');
+
+    const windTxt=area.winds?.[0]||'';
+    const weatherTxt=area.weathers?.[0]||'';
+    const deg=parseWindText(windTxt);
+    if(deg===null)throw new Error('風向き解析失敗: 「'+windTxt+'」');
+
+    setWindDeg(deg);
+    subEl.textContent='「'+windTxt+'」（気象庁 '+area.area?.name+' 今日の予報）';
+    if(weatherTxt) subEl.textContent+=' ／ '+weatherTxt.slice(0,20);
+
+  }catch(e){
+    console.warn('JMA fetchWind error:', e.message);
+    mainEl.textContent=windDeg!==null?degToDir(windDeg)+'風 '+windDeg+'°':'― 未選択';
+    subEl.textContent='取得失敗: '+e.message;
+  }
+}
+
+const DIR8_DEGS=[0,45,90,135,180,225,270,315];
+
+function buildDial(){ /* ダイヤル不要になったのでno-op */ }
+function buildDirBtns(){ /* ボタンはHTMLに直書きなのでno-op */ }
+
+function setWindDeg(deg){
+  windDeg=deg;
+  /* コンパス矢印 */
+  const cg=document.getElementById('wind-arrow-g');
+  if(cg)cg.setAttribute('transform',`rotate(${deg},32,32)`);
+  /* ボタン選択状態 */
+  DIR8_DEGS.forEach(d=>{
+    const btn=document.getElementById('wb-'+d);
+    if(!btn)return;
+    btn.classList.toggle('selected', d===deg);
+  });
+  /* 風向き表示 */
+  document.getElementById('wind-main').textContent=`${degToDir(deg)}風 ${deg}°`;
+  /* 港名 */
+  const portEl=document.getElementById('wind-port');
+  if(portEl) portEl.textContent=curPt?curPt.name+'港':'';
+  /* サブテキスト */
+  const subEl2=document.getElementById('wind-sub');
+  if(subEl2) subEl2.textContent='手動入力 — 釣座アドバイスに反映されます';
+  /* 設定時刻 */
+  const timeEl=document.getElementById('wind-time');
+  if(timeEl){
+    const n=new Date();
+    timeEl.textContent=`設定: ${n.getMonth()+1}/${n.getDate()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  }
+  document.getElementById('wind-deg-input').value=deg;
+  updateBoatArrows();
+  updateSeatAdvice();
+}
+
+function applyManualWind(){
+  const v=parseInt(document.getElementById('wind-deg-input').value);
+  if(isNaN(v)||v<0||v>359){alert('0〜359の数値を入力してください');return;}
+  setWindDeg(v);
+}
+/* 風向き取得:
+   server.py 実行中 → /api/wind エンドポイントから自動取得
+   file:// で直接開いた場合 → WIND_DATA の埋め込みデータを使用 */
+const WIND_DATA = null; /* WIND_DATA_PLACEHOLDER */
+
+function loadWindData(p){
+  /* 埋め込みデータがあれば使う（fetch_wind.py 実行後のオフライン動作用） */
+  if(!WIND_DATA) return;
+  const d = WIND_DATA[p.name];
+  if(!d || d.dir_deg == null) return;
+  setWindDeg(Math.round(d.dir_deg));
+  document.getElementById('wind-sub').textContent =
+    '「' + d.wind_text + '」（気象庁 ' + d.area_name + ' / ' + d.fetched_at + '取得）';
+}
+
+async function fetchWind(p){
+  const mainEl = document.getElementById('wind-main');
+  const subEl  = document.getElementById('wind-sub');
+  const prev   = mainEl.textContent;
+  mainEl.textContent = '取得中...';
+  try {
+    /* server.py 経由で取得（同一オリジンなのでCORS不要） */
+    const res = await Promise.race([
+      fetch('/api/wind?port=' + encodeURIComponent(p.name)),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 6000))
+    ]);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if(d.error) throw new Error(d.error);
+    if(d.dir_deg == null) throw new Error('風向き解析失敗: ' + d.wind_text);
+    setWindDeg(Math.round(d.dir_deg));
+    subEl.textContent = curPt.name+'港 / 気象庁 '+d.area_name+' / '+d.fetched_at+' 取得 — 「'+d.wind_text+'」';
+    if(d.weather_text) subEl.textContent += ' — ' + d.weather_text;
+  } catch(e) {
+    console.warn('fetchWind:', e.message);
+    mainEl.textContent = prev !== '取得中...' ? prev : (windDeg !== null ? degToDir(windDeg) + '風 ' + windDeg + '°' : '― 未選択');
+    subEl.textContent = curPt.name+'港の風向き取得失敗 — 手動で選択するか server.py を起動してください';
+  }
+}
+
+
+/* ── 釣座判定 ── */
+
+/* 上げ潮か下げ潮かを現在の潮位データから判定 */
+function isRising(){
+  if(!tideData.length)return true;
+  const now=new Date(),nH=now.getHours()+now.getMinutes()/60;
+  const{hi,lo}=extr(tideData);
+  const nxHi=hi.find(d=>d.h>nH), nxLo=lo.find(d=>d.h>nH);
+  return nxHi&&nxLo?nxHi.h<nxLo.h:true;
+}
+
+/* 港ごとの「上げ潮が来る絶対方位(deg)」のみ定義
+   船首方向は風向きから動的に決まる */
+const PORT_TIDE_DIR={
+  /* 東京湾: 上げ潮は湾口（南南西・浦賀水道）から北上 */
+  '横浜':  {rising:200},
+  '羽田':  {rising:210},  /* 湾奥寄り・やや南西から */
+  '鶴見':  {rising:210},
+  /* 相模湾: 上げ潮は南〜南東の外洋から */
+  '三浦':  {rising:180},
+  '平塚':  {rising:150},
+  '小田原':{rising:140},
+};
+
+/* 船首方向 = 風が来る方向（船は風上に船首を向ける）
+   南風(windDeg=180)なら南から風が来る → 船首は南を向く */
+function bowDeg(){
+  return windDeg !== null ? windDeg : 180;
+}
+
+/* 潮流が左舷/右舷どちらから当たるか（＝潮先の舷）
+   tideDeg: 潮流が来る絶対方位
+   bow: 船首の絶対方位（風向きに一致）
+   船首基準で右側（rel 0〜180）から来れば右舷が潮先 */
+function tideHeadSide(rising){
+  const cfg=PORT_TIDE_DIR[curPt.name]||{rising:180};
+  const tideDeg=rising ? cfg.rising : (cfg.rising+180)%360;
+  const bow=bowDeg();
+  const rel=((tideDeg - bow)+360)%360;
+  return rel < 180 ? 'right' : 'left';
+}
+
+/* 風下舷を判定
+   船首が風上を向いているので風は船首方向からほぼ正面に来る
+   風向きと船首方向の差(rel)でどちらの舷に風が回り込むかを判定 */
+function leeSide(){
+  if(windDeg===null)return null;
+  const bow=bowDeg();
+  const rel=((windDeg - bow)+360)%360;
+  if(rel < 180) return 'left';
+  return 'right';
+}
+
+function getSeatRating(rule){
+  const rising=isRising();
+  const tideHead=tideHeadSide(rising);
+  const lee=leeSide();
+
+  if(rule==='any') return{l:'fair',r:'fair'};
+  if(rule==='tide_head'){
+    return tideHead==='right' ? {l:'fair',r:'good'} : {l:'good',r:'fair'};
+  }
+  if(rule==='wind_lee'){
+    if(lee===null)return{l:'fair',r:'fair'};
+    return lee==='right' ? {l:'fair',r:'good'} : {l:'good',r:'fair'};
+  }
+  if(rule==='both'){
+    const rScore=(tideHead==='right'?1:0)+(lee==='right'?1:0);
+    const lScore=(tideHead==='left'?1:0)+(lee==='left'?1:0);
+    const rC=rScore>=2?'good':rScore===1?'fair':'poor';
+    const lC=lScore>=2?'good':lScore===1?'fair':'poor';
+    return{l:lC,r:rC};
+  }
+  return{l:'fair',r:'fair'};
+}
+
+const SEAT_COL={good:'#1D9E75',fair:'#BA7517',poor:'#ccc'};
+const SEAT_OP={good:'0.35',fair:'0.25',poor:'0.12'};
+function paintSeats(ratings){
+  const{l,r}=ratings;
+  ['LF','LM','LR'].forEach(id=>{const el=document.getElementById('s'+id);if(el){el.setAttribute('fill',SEAT_COL[l]);el.setAttribute('opacity',SEAT_OP[l]);}});
+  ['RF','RM','RR'].forEach(id=>{const el=document.getElementById('s'+id);if(el){el.setAttribute('fill',SEAT_COL[r]);el.setAttribute('opacity',SEAT_OP[r]);}});
+}
+
+/* 船図・コンパスの矢印を更新
+   SVG船図は「船首=上(Y軸負方向)」固定
+   各矢印は「絶対方位 - 船首方向」で船首基準の相対角度に変換して描画 */
+function updateBoatArrows(){
+  const bow=bowDeg();
+  const rising=isRising();
+  const cfg=PORT_TIDE_DIR[curPt.name]||{rising:180};
+  const tideDeg=rising ? cfg.rising : (cfg.rising+180)%360;
+  const cx=120, cy=80;
+
+  /* 風矢印: windDegを船首基準に変換（rel≈0なら船首正面＝ほぼ上から） */
+  if(windDeg!==null){
+    const wRel=((windDeg - bow)+360)%360;
+    const wRad=wRel*Math.PI/180;
+    const r=62;
+    const fx=cx+r*Math.sin(wRad), fy=cy-r*Math.cos(wRad);
+    const tx=cx+32*Math.sin(wRad), ty=cy-32*Math.cos(wRad);
+    const wa=document.getElementById('wind-arrow-boat');
+    if(wa){wa.setAttribute('x1',fx);wa.setAttribute('y1',fy);wa.setAttribute('x2',tx);wa.setAttribute('y2',ty);}
+  }
+
+  /* 潮流矢印: tideDegを船首基準に変換 */
+  const tRel=((tideDeg - bow)+360)%360;
+  const tRad=tRel*Math.PI/180;
+  const r2=52;
+  const tfx=cx+r2*Math.sin(tRad), tfy=cy-r2*Math.cos(tRad);
+  const ttx=cx+24*Math.sin(tRad), tty=cy-24*Math.cos(tRad);
+  const ta=document.getElementById('tide-arrow-boat');
+  if(ta){ta.setAttribute('x1',tfx);ta.setAttribute('y1',tfy);ta.setAttribute('x2',ttx);ta.setAttribute('y2',tty);}
+
+  /* コンパス矢印（絶対方位のまま） */
+  if(windDeg!==null){
+    document.getElementById('wind-arrow-g').setAttribute('transform',`rotate(${windDeg},34,34)`);
+  }
+}
+
+function updateSeatAdvice(){
+  const fish=FISH_SEATS[curFishIdx];
+  const ratings=getSeatRating(fish.rule);
+  paintSeats(ratings);
+  updateBoatArrows();
+
+  const lLbl=ratings.l==='good'?'✅ 有利':ratings.l==='fair'?'△ 普通':'✕ 不利';
+  const rLbl=ratings.r==='good'?'✅ 有利':ratings.r==='fair'?'△ 普通':'✕ 不利';
+  const overall=ratings.l==='good'||ratings.r==='good'?'good':ratings.l==='poor'&&ratings.r==='poor'?'poor':'fair';
+
+  const rising=isRising();
+  const tideHead=tideHeadSide(rising);
+  const lee=leeSide();
+  const bow=bowDeg();
+
+  const windStr=windDeg!==null?`${degToDir(windDeg)}風 ${windDeg}°`:'（風向き未取得）';
+  const bowStr=`船首: ${degToDir(bow)}向き`;
+  const tideStr=rising?'上げ潮':'下げ潮';
+  const tideHeadStr=`潮先 → ${tideHead==='right'?'右舷':'左舷'}`;
+  const leeStr=lee?`風下 → ${lee==='right'?'右舷':'左舷'}`:'';
+
+  const box=document.getElementById('seat-advice');
+  box.className='seat-advice '+overall;
+  box.innerHTML=`<strong style="font-size:13px">${fish.ico} ${fish.f}</strong><br>
+<span style="font-size:11px;opacity:.72">${windStr} ／ ${bowStr} ／ ${tideStr}: ${tideHeadStr}${leeStr?' ／ '+leeStr:''}</span><br>
+<span style="font-size:13px;line-height:2.2">左舷: ${lLbl} &nbsp;|&nbsp; 右舷: ${rLbl}</span><br>
+<span style="font-size:11px;opacity:.85">${fish.desc}</span><br>
+<span style="font-size:10px;opacity:.6">💡 ${fish.tip}</span>`;
+}
+
+/* ── タブ ── */
+function buildFishTabs(){
+  document.getElementById('fish-seat-tabs').innerHTML=FISH_SEATS.map((f,i)=>
+    `<div class="fst${i===curFishIdx?' active':''}" onclick="selFish(${i})">${f.ico} ${f.f}</div>`
+  ).join('');
+}
+function selFish(i){curFishIdx=i;buildFishTabs();updateSeatAdvice();}
+
+function bPTabs(){
+  document.getElementById('ptabs').innerHTML=PORTS.map(p=>
+    `<div class="port-tab${p.bay==='sagami'?' sagami':''}${p.name===curPt.name?' active':''}" onclick="selPt('${p.name}')">${p.name}</div>`
+  ).join('');
+}
+function selPt(n){curPt=PORTS.find(p=>p.name===n)||PORTS[0];bPTabs();rTide();fetchWind(curPt);}
+
+async function rTide(){
+  const now=new Date(),nH=now.getHours()+now.getMinutes()/60;
+  const age=mAge(now),tt=ttType(age);
+  document.getElementById('tide-date-label').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  document.getElementById('tmoon').textContent=mLbl(age);
+  document.getElementById('tage').textContent=`月齢 ${Math.round(age*10)/10}`;
+  document.getElementById('ttype').textContent=tt.t;
+  tideData=bTA(curPt,now);
+  const ni=Math.min(Math.round(nH*2),tideData.length-1);
+  document.getElementById('tnow').textContent=tideData[ni].cm;
+  const{hi,lo}=extr(tideData);
+  const nxH=hi.find(d=>d.h>nH)||hi[hi.length-1];
+  const nxL=lo.find(d=>d.h>nH)||lo[lo.length-1];
+  if(nxH){document.getElementById('thi').textContent=nxH.cm+' cm';document.getElementById('thit').textContent=fH(nxH.h);}
+  if(nxL){document.getElementById('tlo').textContent=nxL.cm+' cm';document.getElementById('tlot').textContent=fH(nxL.h);}
+  drawTide(tideData,nH);
+  buildTTbl(tideData);
+  await fetchWind(curPt);
+}
+
+/* ════════════════════════════════════
+   SNS
+════════════════════════════════════ */
+function ox(q,addDate=false){
+  /* 今日の日付を since: で絞ると無関係な投稿を減らせる */
+  const today=new Date();
+  const dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const dateFilter=addDate?' since:'+dateStr:'';
+  const enc=encodeURIComponent(q+dateFilter+' lang:ja -RT');
+  const url='https://twitter.com/search?q='+enc+'&src=typed_query&f=live';
+  window.open(url,'_blank');
+}
+function openCustom(){
+  const q=document.getElementById('cq').value.trim();
+  if(!q)return;
+  const sort=document.getElementById('csort').value;
+  /* -RT を自動付与してリツイートを除外 */
+  const qFinal=q.includes('-RT')?q:q+' -RT';
+  const enc=encodeURIComponent(qFinal+' lang:ja');
+  window.open('https://twitter.com/search?q='+enc+'&src=typed_query&f='+sort,'_blank');
+}
+function sq(q){document.getElementById('cq').value=q}
+document.getElementById('cq').addEventListener('keydown',e=>{if(e.key==='Enter')openCustom()});
+
+/* ════════════════════════════════════
+   起動
+════════════════════════════════════ */
+bPTabs();
+buildFishTabs();
+buildDial();
+buildDirBtns();
+refreshCatch();
+rTide();
+fetchWind(curPt);
+updCd();
+setInterval(updCd,60000);
+const nh=new Date().getHours();
+if(nh>=18)setTimeout(()=>triggerAuto(),1500);
+</script>
+</body>
+</html>

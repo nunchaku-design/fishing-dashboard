@@ -1,0 +1,7 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/wind"
+  to   = "/.netlify/functions/wind"
+  status = 200
