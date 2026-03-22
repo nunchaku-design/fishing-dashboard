@@ -1124,7 +1124,7 @@ function fH(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return`${String(h
 function drawTide(data,nH){
   const sv=document.getElementById('tsvg');
   sv.innerHTML='';
-  const W=520,H=230,PL=44,PR=14,PT=28,PB=28;
+  const W=520,H=240,PL=44,PR=14,PT=44,PB=32;
   const cw=W-PL-PR, ch=H-PT-PB;
   const YMIN=-40,YMAX=200;
   const sx=h=>PL+h/24*cw;
@@ -1215,33 +1215,39 @@ function drawTide(data,nH){
     }
   });
 
-  /* 満干潮ラベル */
+  /* 満干潮ラベル（グラフ内に配置・上部余白エリアを使用） */
   const peaks=[...hi.map(d=>({...d,t:'hi'})),...lo.map(d=>({...d,t:'lo'}))].sort((a,b)=>a.h-b.h);
   peaks.forEach(d=>{
     const cx=sx(d.h);
     const isHi=d.t==='hi';
+    /* 満潮: グラフ上部余白エリア（PT内） / 干潮: グラフ下部余白エリア（PB内） */
+    const labelY=isHi?6:H-4;
+    /* バッジ背景 */
     const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    br.setAttribute('x',cx-13);br.setAttribute('y',isHi?2:H+2);
-    br.setAttribute('width',26);br.setAttribute('height',11);br.setAttribute('rx','3');
+    br.setAttribute('x',cx-20);br.setAttribute('y',labelY);
+    br.setAttribute('width',40);br.setAttribute('height',14);br.setAttribute('rx','3');
     br.setAttribute('fill',isHi?'#7a1525':'#12257a');sv.appendChild(br);
+    /* 満潮/干潮テキスト */
     const bt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    bt.setAttribute('x',cx);bt.setAttribute('y',isHi?10:H+10);
-    bt.setAttribute('text-anchor','middle');bt.setAttribute('font-size','7');
+    bt.setAttribute('x',cx-8);bt.setAttribute('y',labelY+10);
+    bt.setAttribute('font-size','7');
     bt.setAttribute('fill',isHi?'#ffbbcc':'#bbccff');
     bt.setAttribute('font-family','sans-serif');bt.setAttribute('font-weight','700');
     bt.textContent=isHi?'満潮':'干潮';sv.appendChild(bt);
+    /* 潮位cm */
+    const tv=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tv.setAttribute('x',cx+6);tv.setAttribute('y',labelY+10);
+    tv.setAttribute('font-size','9');
+    tv.setAttribute('fill',isHi?'#ffbbaa':'#aabbff');
+    tv.setAttribute('font-family','sans-serif');tv.setAttribute('font-weight','700');
+    tv.textContent=d.cm+'cm';sv.appendChild(tv);
+    /* 時刻（バッジの外側） */
     const tt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tt.setAttribute('x',cx);tt.setAttribute('y',isHi?PT-14:H+2);
+    tt.setAttribute('x',cx);tt.setAttribute('y',isHi?labelY+26:labelY-4);
     tt.setAttribute('text-anchor','middle');tt.setAttribute('font-size','8');
     tt.setAttribute('fill',isHi?'#ff9988':'#88aaff');
     tt.setAttribute('font-family','sans-serif');
     tt.textContent=fH(d.h);sv.appendChild(tt);
-    const tv=document.createElementNS('http://www.w3.org/2000/svg','text');
-    tv.setAttribute('x',cx);tv.setAttribute('y',isHi?PT-5:H+12);
-    tv.setAttribute('text-anchor','middle');tv.setAttribute('font-size','10');
-    tv.setAttribute('fill',isHi?'#ffbbaa':'#aabbff');
-    tv.setAttribute('font-family','sans-serif');tv.setAttribute('font-weight','700');
-    tv.textContent=d.cm+'cm';sv.appendChild(tv);
   });
 }
 
