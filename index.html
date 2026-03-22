@@ -575,6 +575,20 @@ input:focus, select:focus { border-color: var(--blue); }
           chowari.jpで詳細を見る ↗
         </a>
       </div>
+
+      <!-- 時間別風向き・風速 -->
+      <div style="margin-top:14px;border-top:0.5px solid var(--border);padding-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">時間別風向き・風速</div>
+          <button onclick="loadHourlyWind()" id="hourly-wind-btn"
+            style="font-size:11px;padding:4px 12px;border-radius:var(--radius-sm);border:0.5px solid var(--green);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:inherit">
+            🌀 取得
+          </button>
+        </div>
+        <div id="hourly-wind-table" style="font-size:11px;color:var(--text2)">
+          「取得」ボタンを押すと1時間ごとの風向き・風速を表示します
+        </div>
+      </div>
     </div>
 
     <!-- 右：風向き＋釣座アドバイス -->
@@ -629,20 +643,6 @@ input:focus, select:focus { border-color: var(--blue); }
         <div style="font-size:10px;color:var(--text3);margin-top:2px" id="wind-time"></div>
       </div>
 
-
-      <!-- 時間別風向き -->
-      <div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div class="card-title" style="margin:0">時間別風向き・風速</div>
-          <button onclick="loadHourlyWind()" id="hourly-wind-btn"
-            style="font-size:11px;padding:3px 10px;border-radius:var(--radius-sm);border:0.5px solid var(--green);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:inherit">
-            取得
-          </button>
-        </div>
-        <div id="hourly-wind-table" style="font-size:11px;color:var(--text2)">
-          「取得」ボタンを押すと1時間ごとの風向き・風速を表示します
-        </div>
-      </div>
 
       <div class="card-title">釣座アドバイス</div>
       <div class="fish-seat-tabs" id="fish-seat-tabs"></div>
@@ -1727,6 +1727,9 @@ async function rTide(){
   drawTide(tideData,nH);
   buildTTbl(tideData);
   if(isToday)await fetchWind(curPt);
+  /* 日付変更時に時間別風向きをリセット */
+  const hwt=document.getElementById('hourly-wind-table');
+  if(hwt)hwt.innerHTML='「取得」ボタンを押すと1時間ごとの風向き・風速を表示します';
 }
 
 /* ════════════════════════════════════
