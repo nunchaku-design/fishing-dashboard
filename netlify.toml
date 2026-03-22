@@ -6,3 +6,9 @@
   to   = "/.netlify/functions/wind"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/hourly-wind"
+  to   = "/.netlify/functions/hourly-wind"
+  status = 200
+  force = true
