@@ -401,6 +401,17 @@ input:focus, select:focus { border-color: var(--blue); }
 .wbtn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
 .wbtn.selected { background: var(--blue); color: #E6F1FB; border-color: var(--blue); font-weight: 700; }
 
+/* ── 日付タブ ── */
+.date-tab {
+  padding: 4px 8px; font-size: 11px; font-weight: 500;
+  border-radius: var(--radius-sm); border: 0.5px solid var(--border2);
+  background: var(--surface); color: var(--text2);
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: all .15s;
+}
+.date-tab:hover { border-color: var(--blue); color: var(--blue); }
+.date-tab.active { background: var(--blue); color: #E6F1FB; border-color: var(--blue); }
+
 /* ── フッター ── */
 .page-footer {
   text-align: center; font-size: 11px; color: var(--text3);
@@ -531,11 +542,14 @@ input:focus, select:focus { border-color: var(--blue); }
   <div class="sec-label">潮位情報</div>
 
   <div class="filter-bar">
-    <div>
-      <h2>今日の潮位</h2>
-      <p id="tide-date-label" style="font-size:12px;color:var(--text2)"></p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2 id="tide-h2">今日の潮位</h2>
+      <p id="tide-date-label" style="font-size:12px;color:var(--text2);margin:0"></p>
     </div>
-    <span class="moon-badge" id="tmoon"></span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="moon-badge" id="tmoon"></span>
+      <div style="display:flex;gap:3px" id="date-tabs"></div>
+    </div>
   </div>
 
   <div class="port-tabs" id="ptabs"></div>
@@ -550,9 +564,17 @@ input:focus, select:focus { border-color: var(--blue); }
   <div class="tide-mg">
     <!-- 左：潮位グラフ -->
     <div class="card">
-      <div class="card-title">本日の潮位グラフ</div>
+      <div class="card-title" id="tide-graph-title">本日の潮位グラフ</div>
       <svg id="tsvg" width="100%" viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
       <table class="tide-table" id="ttbl"></table>
+      <!-- chowari.jpリンク -->
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div style="font-size:10px;color:var(--text3)">天文計算による推定値</div>
+        <a id="chowari-link" href="#" target="_blank" rel="noopener"
+          style="font-size:11px;color:var(--blue);text-decoration:none;padding:4px 10px;border:0.5px solid var(--blue);border-radius:var(--radius-sm)">
+          chowari.jpで詳細を見る ↗
+        </a>
+      </div>
     </div>
 
     <!-- 右：風向き＋釣座アドバイス -->
@@ -1000,13 +1022,17 @@ document.getElementById('df').addEventListener('change',refreshCatch);
 ════════════════════════════════════ */
 const PORTS=[
   /* 東京湾 */
-  {name:'横浜',  bay:'tokyo', pc:14,hc:1, lat:35.443,lon:139.638},
-  {name:'羽田',  bay:'tokyo', pc:14,hc:1, lat:35.549,lon:139.757},
-  {name:'鶴見',  bay:'tokyo', pc:14,hc:1, lat:35.510,lon:139.673},
+  {name:'南六郷', bay:'tokyo', lat:35.547,lon:139.729, tideUrl:'https://tide.chowari.jp/13/131113/21360/'},
+  {name:'羽田',   bay:'tokyo', lat:35.549,lon:139.757, tideUrl:'https://tide.chowari.jp/13/131113/21360/'},
+  {name:'鶴見',   bay:'tokyo', lat:35.510,lon:139.673, tideUrl:'https://tide.chowari.jp/14/141003/21370/'},
+  {name:'横浜',   bay:'tokyo', lat:35.443,lon:139.638, tideUrl:'https://tide.chowari.jp/14/141003/23062/'},
+  {name:'金沢八景',bay:'tokyo',lat:35.336,lon:139.623, tideUrl:'https://tide.chowari.jp/14/141003/21398/'},
   /* 相模湾 */
-  {name:'三浦',  bay:'sagami',pc:14,hc:5, lat:35.162,lon:139.621},
-  {name:'平塚',  bay:'sagami',pc:14,hc:8, lat:35.328,lon:139.349},
-  {name:'小田原',bay:'sagami',pc:14,hc:10,lat:35.255,lon:139.157},
+  {name:'三浦',   bay:'sagami',lat:35.162,lon:139.621, tideUrl:'https://tide.chowari.jp/14/142107/21437/'},
+  {name:'松輪',   bay:'sagami',lat:35.167,lon:139.618, tideUrl:'https://tide.chowari.jp/14/142107/23315/'},
+  {name:'葉山',   bay:'sagami',lat:35.271,lon:139.576, tideUrl:'https://tide.chowari.jp/14/143014/'},
+  {name:'平塚',   bay:'sagami',lat:35.328,lon:139.349, tideUrl:'https://tide.chowari.jp/14/142034/'},
+  {name:'小田原', bay:'sagami',lat:35.255,lon:139.157, tideUrl:'https://tide.chowari.jp/14/142069/'},
 ];
 
 /* 魚種別釣座ルール
@@ -1032,6 +1058,7 @@ const FISH_SEATS=[
 ];
 
 let curPt=PORTS[0], tideData=[], windDeg=null, windSpd=null, curFishIdx=0;
+let tideDate=new Date(); /* 潮位表示日 */
 
 /* ── 天文計算 ── */
 function toR(d){return d*Math.PI/180}
@@ -1048,12 +1075,18 @@ function calcT(p,dt,h){
   /* 港ごとの調和定数 [MSL, M2振幅, phi_M2, S2振幅, phi_S2, K1振幅, phi_K1, O1振幅, phi_O1]
      位相は2026/3/22 00:00 JSTを基準に実データからフィッティング */
   const P={
-    横浜:  [103,84,189,17,53,18,  6,10,22],
-    羽田:  [103,84,189,17,53,18,  6,10,22],
-    鶴見:  [103,84,189,17,53,18,  6,10,22],
-    三浦:  [ 95,72,195,14,58,15,  8, 8,26],
-    平塚:  [ 92,68,198,13,61,14, 10, 8,28],
-    小田原:[ 88,65,201,12,63,13, 12, 7,30],
+    /* 東京湾 */
+    南六郷: [105,84,188,17,52,18,  5,10,21],
+    羽田:   [105,84,188,17,52,18,  5,10,21],
+    鶴見:   [104,84,189,17,53,18,  6,10,22],
+    横浜:   [103,84,189,17,53,18,  6,10,22],
+    金沢八景:[100,82,191,16,54,17,  7, 9,23],
+    /* 相模湾 */
+    三浦:   [ 95,72,195,14,58,15,  8, 8,26],
+    松輪:   [ 93,70,196,13,59,14,  9, 8,27],
+    葉山:   [ 94,71,196,14,58,14,  9, 8,27],
+    平塚:   [ 92,68,198,13,61,14, 10, 8,28],
+    小田原: [ 88,65,201,12,63,13, 12, 7,30],
   };
   const c=P[p.name]||P['横浜'];
 
@@ -1216,10 +1249,16 @@ function degToDir(d){return DIR16[Math.round(((d%360)+360)/22.5)%16]}
    東京都: 130000.json / 東京地方=130010（参考：東京湾岸）
 */
 const PORT_JMA={
+  /* 東京湾 */
+  '南六郷': {pref:'130000', areaCode:'130010'},  /* 東京地方 */
+  '羽田':   {pref:'130000', areaCode:'130010'},
+  '鶴見':   {pref:'140000', areaCode:'140010'},  /* 神奈川東部 */
   '横浜':   {pref:'140000', areaCode:'140010'},
-  '羽田':   {pref:'140000', areaCode:'140010'},  /* 神奈川東部（羽田は実質東京湾岸） */
-  '鶴見':   {pref:'140000', areaCode:'140010'},
-  '三浦':   {pref:'140000', areaCode:'140010'},  /* 神奈川東部で代用 */
+  '金沢八景':{pref:'140000', areaCode:'140010'},
+  /* 相模湾 */
+  '三浦':   {pref:'140000', areaCode:'140010'},
+  '松輪':   {pref:'140000', areaCode:'140010'},
+  '葉山':   {pref:'140000', areaCode:'140020'},
   '平塚':   {pref:'140000', areaCode:'140020'},
   '小田原': {pref:'140000', areaCode:'140020'},
 };
@@ -1340,15 +1379,22 @@ function loadWindData(p){
     '「' + d.wind_text + '」（気象庁 ' + d.area_name + ' / ' + d.fetched_at + '取得）';
 }
 
-async function fetchWind(p){
+async function fetchWind(p, targetDate){
+  const dt=targetDate||tideDate||new Date();
+  const today=new Date();
+  const isToday=dt.getDate()===today.getDate()&&dt.getMonth()===today.getMonth();
+  /* 日付インデックス（0=今日、1=明日...） */
+  const dayIdx=Math.round((new Date(dt.getFullYear(),dt.getMonth(),dt.getDate())
+    -new Date(today.getFullYear(),today.getMonth(),today.getDate()))/(86400000));
+  const safeIdx=Math.max(0,Math.min(6,dayIdx));
+
   const mainEl = document.getElementById('wind-main');
   const subEl  = document.getElementById('wind-sub');
   const prev   = mainEl.textContent;
   mainEl.textContent = '取得中...';
   try {
-    /* server.py 経由で取得（同一オリジンなのでCORS不要） */
     const res = await Promise.race([
-      fetch('/api/wind?port=' + encodeURIComponent(p.name)),
+      fetch('/api/wind?port=' + encodeURIComponent(p.name) + '&day=' + safeIdx),
       new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 6000))
     ]);
     if(!res.ok) throw new Error('HTTP ' + res.status);
@@ -1356,12 +1402,13 @@ async function fetchWind(p){
     if(d.error) throw new Error(d.error);
     if(d.dir_deg == null) throw new Error('風向き解析失敗: ' + d.wind_text);
     setWindDeg(Math.round(d.dir_deg));
-    subEl.textContent = curPt.name+'港 / 気象庁 '+d.area_name+' / '+d.fetched_at+' 取得 — 「'+d.wind_text+'」';
-    if(d.weather_text) subEl.textContent += ' — ' + d.weather_text;
+    const dayLabel=safeIdx===0?'今日':safeIdx===1?'明日':`${dt.getMonth()+1}/${dt.getDate()}`;
+    subEl.textContent = `${p.name}港 / ${dayLabel} / 気象庁 ${d.area_name} — 「${d.wind_text}」`;
+    if(d.weather_text) subEl.textContent += ' / ' + d.weather_text;
   } catch(e) {
     console.warn('fetchWind:', e.message);
     mainEl.textContent = prev !== '取得中...' ? prev : (windDeg !== null ? degToDir(windDeg) + '風 ' + windDeg + '°' : '― 未選択');
-    subEl.textContent = curPt.name+'港: 風向き自動取得失敗 (' + e.message + ') — 手動で選択してください';
+    subEl.textContent = p.name+'港: 風向き自動取得失敗 (' + e.message + ') — 手動で選択してください';
   }
 }
 
@@ -1381,13 +1428,17 @@ function isRising(){
    船首方向は風向きから動的に決まる */
 const PORT_TIDE_DIR={
   /* 東京湾: 上げ潮は湾口（南南西・浦賀水道）から北上 */
-  '横浜':  {rising:200},
-  '羽田':  {rising:210},  /* 湾奥寄り・やや南西から */
-  '鶴見':  {rising:210},
+  '南六郷': {rising:215},
+  '羽田':   {rising:210},
+  '鶴見':   {rising:210},
+  '横浜':   {rising:200},
+  '金沢八景':{rising:195},
   /* 相模湾: 上げ潮は南〜南東の外洋から */
-  '三浦':  {rising:180},
-  '平塚':  {rising:150},
-  '小田原':{rising:140},
+  '三浦':   {rising:180},
+  '松輪':   {rising:175},
+  '葉山':   {rising:160},
+  '平塚':   {rising:150},
+  '小田原': {rising:140},
 };
 
 /* 船首方向 = 風が来る方向（船は風上に船首を向ける）
@@ -1529,26 +1580,67 @@ function bPTabs(){
     `<div class="port-tab${p.bay==='sagami'?' sagami':''}${p.name===curPt.name?' active':''}" onclick="selPt('${p.name}')">${p.name}</div>`
   ).join('');
 }
-function selPt(n){curPt=PORTS.find(p=>p.name===n)||PORTS[0];bPTabs();rTide();fetchWind(curPt);}
+function selPt(n){
+  curPt=PORTS.find(p=>p.name===n)||PORTS[0];
+  bPTabs();rTide();fetchWind(curPt);
+  /* chowari.jpリンクを更新 */
+  const cl=document.getElementById('chowari-link');
+  if(cl&&curPt.tideUrl)cl.href=curPt.tideUrl;
+}
+
+function buildDateTabs(){
+  const el=document.getElementById('date-tabs');
+  if(!el)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const WD=['日','月','火','水','木','金','土'];
+  el.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(today);d.setDate(d.getDate()+i);
+    const btn=document.createElement('button');
+    btn.className='date-tab'+(i===0?' active':'');
+    const m=d.getMonth()+1,day=d.getDate(),w=WD[d.getDay()];
+    btn.textContent=i===0?'今日':`${m}/${day}(${w})`;
+    const dt=new Date(d);
+    btn.onclick=()=>{
+      tideDate=dt;
+      document.querySelectorAll('.date-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      rTide();
+    };
+    el.appendChild(btn);
+  }
+}
 
 async function rTide(){
-  const now=new Date(),nH=now.getHours()+now.getMinutes()/60;
-  const age=mAge(now),tt=ttType(age);
-  document.getElementById('tide-date-label').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const dt=tideDate||new Date();
+  const t=new Date();
+  const isToday=dt.getDate()===t.getDate()&&dt.getMonth()===t.getMonth()&&dt.getFullYear()===t.getFullYear();
+  const nH=isToday?(t.getHours()+t.getMinutes()/60):-1;
+  const WD=['日','月','火','水','木','金','土'];
+  const age=mAge(dt),tt=ttType(age);
+  document.getElementById('tide-date-label').textContent=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（${WD[dt.getDay()]}）`;
+  const h2=document.getElementById('tide-h2');
+  if(h2)h2.textContent=isToday?'今日の潮位':`${dt.getMonth()+1}/${dt.getDate()} の潮位`;
+  const gt=document.getElementById('tide-graph-title');
+  if(gt)gt.textContent=`${dt.getMonth()+1}月${dt.getDate()}日の潮位グラフ`;
   document.getElementById('tmoon').textContent=mLbl(age);
   document.getElementById('tage').textContent=`月齢 ${Math.round(age*10)/10}`;
   document.getElementById('ttype').textContent=tt.t;
-  tideData=bTA(curPt,now);
-  const ni=Math.min(Math.round(nH*2),tideData.length-1);
-  document.getElementById('tnow').textContent=tideData[ni].cm;
+  tideData=bTA(curPt,dt);
+  if(isToday){
+    const ni=Math.min(Math.round(nH*2),tideData.length-1);
+    document.getElementById('tnow').textContent=tideData[ni].cm;
+  }else{
+    document.getElementById('tnow').textContent='—';
+  }
   const{hi,lo}=extr(tideData);
-  const nxH=hi.find(d=>d.h>nH)||hi[hi.length-1];
-  const nxL=lo.find(d=>d.h>nH)||lo[lo.length-1];
+  const nxH=isToday?(hi.find(d=>d.h>nH)||hi[0]):hi[0];
+  const nxL=isToday?(lo.find(d=>d.h>nH)||lo[0]):lo[0];
   if(nxH){document.getElementById('thi').textContent=nxH.cm+' cm';document.getElementById('thit').textContent=fH(nxH.h);}
   if(nxL){document.getElementById('tlo').textContent=nxL.cm+' cm';document.getElementById('tlot').textContent=fH(nxL.h);}
   drawTide(tideData,nH);
   buildTTbl(tideData);
-  await fetchWind(curPt);
+  if(isToday)await fetchWind(curPt);
 }
 
 /* ════════════════════════════════════
@@ -1578,13 +1670,9 @@ document.getElementById('cq').addEventListener('keydown',e=>{if(e.key==='Enter')
 /* ════════════════════════════════════
    起動
 ════════════════════════════════════ */
-bPTabs();
-buildFishTabs();
-buildDial();
-buildDirBtns();
-refreshCatch();
-rTide();
-fetchWind(curPt);
+bPTabs();buildFishTabs();buildDial();buildDirBtns();buildDateTabs();refreshCatch();rTide();
+const _cl=document.getElementById('chowari-link');
+if(_cl&&curPt.tideUrl)_cl.href=curPt.tideUrl;
 updCd();
 setInterval(updCd,60000);
 const nh=new Date().getHours();
